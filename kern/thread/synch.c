@@ -299,6 +299,7 @@ cv_wait(struct cv *cv, struct lock *lock)
 	spinlock_acquire(&cv->cv_spinlock);
 	lock_release(lock);
 	//spinlock_acquire(&cv->cv_spinlock);
+//	P(cv->cv_semaphore->sem_wchan);
 	wchan_sleep(cv->cv_wchan, &cv->cv_spinlock);
 	spinlock_release(&cv->cv_spinlock);
 
@@ -314,6 +315,7 @@ cv_signal(struct cv *cv, struct lock *lock)
 
 	spinlock_acquire(&cv->cv_spinlock);
 	wchan_wakeone(cv->cv_wchan, &cv->cv_spinlock);
+//	V(cv->cv_semaphore);
 	spinlock_release(&cv->cv_spinlock);
 
 
