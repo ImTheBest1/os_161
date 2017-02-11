@@ -309,7 +309,8 @@ cv_wait(struct cv *cv, struct lock *lock)
 	// must hold a lock
 	KASSERT(lock_do_i_hold(lock));
 
-	// before lease the lock, make sure the lock can release properly	
+	// before lease the lock, make sure the lock can release properly
+	// spinlock_acquire before lock_release to fill the gap	
 	spinlock_acquire(&cv->cv_spinlock);
 	lock_release(lock);
 	//spinlock_acquire(&cv->cv_spinlock);
