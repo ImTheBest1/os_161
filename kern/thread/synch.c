@@ -154,18 +154,15 @@ lock_create(const char *name)
 		return NULL;
 	}
 
-<<<<<<< HEAD
+	HANGMAN_LOCKABLEINIT(&lock->lk_hangman, lock->lk_name);
+
+	// add stuff here as needed
 	lock->lk_wchan = wchan_create(lock->lk_name);
 	if (lock->lk_wchan == NULL) {
 		kfree(lock->lk_name);
 		kfree(lock);
 		return NULL;
 	}
-=======
-	HANGMAN_LOCKABLEINIT(&lock->lk_hangman, lock->lk_name);
-
-	// add stuff here as needed
->>>>>>> 398e4eb90a75871d9cffa8144492a3c3897c10e5
 
 	lock->lk_used = false;
 	lock->lk_curThread = NULL;
@@ -188,7 +185,8 @@ lock_destroy(struct lock *lock)
 void
 lock_acquire(struct lock *lock)
 {
-<<<<<<< HEAD
+	/* Call this (atomically) once the lock is acquired */
+	HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
 	//write this
 	// follow P(struct semaphore *sem) function
 	KASSERT(lock != NULL);
@@ -210,17 +208,10 @@ lock_acquire(struct lock *lock)
 	lock->lk_used = true;
 	lock->lk_curThread = curthread;
 	spinlock_release(&lock->lk_spinlock);
-=======
-	/* Call this (atomically) before waiting for a lock */
-	//HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
 
-	// Write this
 
 	(void)lock;  // suppress warning until code gets written
 
-	/* Call this (atomically) once the lock is acquired */
-	//HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
->>>>>>> 398e4eb90a75871d9cffa8144492a3c3897c10e5
 }
 
 void
