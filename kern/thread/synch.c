@@ -374,85 +374,172 @@ rwlock_create(const char *name)
 		return NULL;
 	}
 
-	// add stuff here as needed
-	rwlock->rw_lock = lock_create(rwlock->rwlock_name);
-	if (rwlock->rw_lock == NULL) {
+	// create a cv
+	rwlock->rwlk_cv = cv_create(rwlock->rwlock_name);
+	if(rwlock->rwlk_cv == NULL){
 		kfree(rwlock->rwlock_name);
 		kfree(rwlock);
 		return NULL;
 	}
-	rwlock->rw_ready = cv_create(rwlock->rwlock_name);
-	if (rwlock->rw_ready == NULL) {
-		lock_destroy(rwlock->rw_lock);
+
+	// create a lock
+	rwlock->rwlk_lock = lock_create(rwlock->rwlock_name);
+	if(rwlock->rwlk_lock == NULL){
+		cv_destroy(rwlock->rwlk_cv);
+		kfree(rwlock->rwlock_name);
+		kfree(rwlock);
+		return NULL;
+
+	}
+
+	// create a read wchan
+	rwlock->rwlk_read_wchan = wchan_create(rwlock->rwlock_name);
+	if(rwlock->rwlk_read_wchan == NULL){
+		cv_destroy(rwlock->rwlk_cv);
+		lock_destroy(rwlock->rwlk_lock);
+		kfree(rwlock->rwlock_name);
 		kfree(rwlock);
 		return NULL;
 	}
-	spinlock_init(&rwlock->rw_spinlock);
-	// rwlock->rw_to_write = cv_create(rwlock->rwlock_name);
-	// KASSERT(rwlock->rw_to_write == NULL);
-  rwlock->rw_reader_in_queue=0;
-	// this reader count is for the reader that waiting in the queue and blocked by writing signal
-	rwlock->rw_writer_in_queue=0;
-	// same writer counter as reader counter
-  rwlock->rw_reader_in_held=0;
-	//the reader that successfully acquired into stack
-	rwlock->rw_writer_in_held=0;
-	//same writer
+
+	// create a write wchan
+	rwlock->rwlk_write_wchan = wchan_create(rwlock->rwlock_name);
+	if(rwlock->rwlk_write_wchan == NULL){
+		cv_destroy(rwlock->rwlk_cv);
+		wchan_destroy(rwlock->rwlk_read_wchan);
+		lock_destroy(rwlock->rwlk_lock);
+		kfree(rwlock->rwlock_name);
+		kfree(rwlock);
+		return NULL;
+	}
+
+	spinlock_init(&rwlock->rwlk_read_spinlock);
+	spinlock_init(&rwlock->rwlk_write_spinlock);
+	rwlock->rwlk_curThread = NULL;
+	rwlock->rwlk_read_count = 0;
+	rwlock->rwlk_write_count = 0;
+
 	return rwlock;
 }
+
+
 void rwlock_destroy(struct rwlock *rwlock)
 {
 	KASSERT(rwlock==NULL);
-	//check the rwlock is existing
 
-	//release all requesting resource
-	// cv_destroy(	rwlock->rw_to_write);
-	cv_destroy(	rwlock->rw_ready);
-	spinlock_cleanup(&rwlock->rw_spinlock);
-	lock_destroy(rwlock->rw_lock);
+	lock_destroy(rwlock->rwlk_lock);
+
+	cv_destroy(rwlock->rwlk_cv);
+
+	spinlock_cleanup(&rwlock->rwlk_read_spinlock);
+	spinlock_cleanup(&rwlock->rwlk_write_spinlock);
+
+	wchan_destroy(rwlock->rwlk_read_wchan);
+	wchan_destroy(rwlock->rwlk_write_wchan);
+
+	kfree(rwlock->rwlk_curThread);
 	kfree(rwlock->rwlock_name);
 	kfree(rwlock);
 }
+
+
 void rwlock_acquire_read(struct rwlock *rwlock)
 {
-	lock_acquire(rwlock->rw_lock);
-	rwlock->rw_reader_in_queue++;//add the pending queue first
-	while(rwlock->rw_writer_in_held > 0){
-		// pending process
-    cv_wait(rwlock->rw_ready,rwlock->rw_lock);
-	}
-	rwlock->rw_reader_in_held++;// passed the while loop,acquire succeed
-	rwlock->rw_reader_in_queue--;// out of pending queue
-	lock_release(rwlock->rw_lock);
-}
-void rwlock_release_read(struct rwlock *rwlock){
-	//add
-	lock_acquire(rwlock->rw_lock);
-	rwlock->rw_reader_in_held--;
-	lock_release(rwlock->rw_lock);
-	if(rwlock->rw_reader_in_held == 0){
-			cv_broadcast(rwlock->rw_ready,rwlock->rw_lock);
+	/*rwlock_acquire_read  - Get the lock for reading. Multiple threads can
+  *                          hold the lock for reading at the same time.
+	*/
+	KASSERT(rwlock != NULL);
+
+	lock_acquire(rwlock->rwlk_lock);
+
+	while(rwlock->rwlk_curThread != NULL){
+		//cv_wait(rwlock->rwlk_cv, rwlock->rwlk_lock);
+		spinlock_acquire(&rwlock->rwlk_read_spinlock);
+		lock_release(rwlock->rwlk_lock);
+		wchan_sleep(rwlock->rwlk_read_wchan, &rwlock->rwlk_read_spinlock);
+		spinlock_release(&rwlock->rwlk_read_spinlock);
+		lock_acquire(rwlock->rwlk_lock);
 	}
 
+	rwlock->rwlk_read_count++;	// count read
+
+	lock_release(rwlock->rwlk_lock);
+
 }
-void rwlock_acquire_write(struct rwlock *rwlock){
-  lock_acquire(rwlock->rw_lock);
-	rwlock->rw_writer_in_queue++; //add to pending queue
-	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0){
-		  cv_wait(rwlock->rw_ready,rwlock->rw_lock);
+
+
+void rwlock_release_read(struct rwlock *rwlock)
+{
+	/*
+	rwlock_release_read  - Free the lock.
+	*/
+	KASSERT(rwlock != NULL);
+
+	lock_acquire(rwlock->rwlk_lock);
+
+	rwlock->rwlk_read_count--;
+
+	while((rwlock->rwlk_read_count == 0) && (rwlock->rwlk_write_count != 0)){
+
+		spinlock_acquire(&rwlock->rwlk_read_spinlock);
+		wchan_wakeone(rwlock->rwlk_write_wchan, &rwlock->rwlk_write_spinlock);
+		spinlock_release(&rwlock->rwlk_read_spinlock);
 	}
-	rwlock->rw_writer_in_queue--;//unqueue
-	rwlock->rw_writer_in_held++;//acquire section succed
-  lock_release(rwlock->rw_lock);
+
+	lock_release(rwlock->rwlk_lock);
+
 }
+
+
+void rwlock_acquire_write(struct rwlock *rwlock){
+	/*
+  *    rwlock_acquire_write - Get the lock for writing. Only one thread can
+  *                           hold the write lock at one time.
+  */
+
+	KASSERT(rwlock != NULL);
+
+	lock_acquire(rwlock->rwlk_lock);
+	rwlock->rwlk_write_count++;
+
+	while(rwlock->rwlk_curThread != NULL && rwlock->rwlk_write_count != 0){
+		//cv_wait(rwlock->rwlk_cv, rwlock->rwlk_lock);
+		spinlock_acquire(&rwlock->rwlk_write_spinlock);
+		lock_release(rwlock->rwlk_lock);
+		wchan_sleep(rwlock->rwlk_write_wchan, &rwlock->rwlk_write_spinlock);
+		spinlock_release(&rwlock->rwlk_write_spinlock);
+		lock_acquire(rwlock->rwlk_lock);
+	}
+
+	rwlock->rwlk_write_count--;
+	rwlock->rwlk_curThread = curthread;
+
+	lock_release(rwlock->rwlk_lock);
+
+}
+
+
 void rwlock_release_write(struct rwlock *rwlock){
 
-	lock_acquire(rwlock->rw_lock);
-	rwlock->rw_writer_in_held--;
-	lock_release(rwlock->rw_lock);
-	  // if still some writer in queue
-	if(rwlock->rw_writer_in_held == 0){
-	cv_broadcast(rwlock->rw_ready,rwlock->rw_lock);
-	// signal for next writer
-  }
+/*
+*    rwlock_release_write - Free the write lock.
+*/
+	KASSERT(rwlock != NULL);
+	// Write this
+	KASSERT(rwlock->rwlk_cv != NULL);
+	KASSERT(rwlock->rwlk_lock != NULL);
+	KASSERT(lock_do_i_hold(rwlock->rwlk_lock));
+
+	lock_acquire(rwlock->rwlk_lock);
+	spinlock_acquire(&rwlock->rwlk_write_spinlock);
+	spinlock_acquire(&rwlock->rwlk_read_spinlock);
+
+	wchan_wakeall(rwlock->rwlk_read_wchan, &rwlock->rwlk_read_spinlock);
+	wchan_wakeone(rwlock->rwlk_write_wchan, &rwlock->rwlk_write_spinlock);
+
+	spinlock_release(&rwlock->rwlk_write_spinlock);
+	spinlock_release(&rwlock->rwlk_read_spinlock);
+	lock_release(rwlock->rwlk_lock);
+
+	rwlock->rwlk_curThread = NULL;
 }

@@ -154,17 +154,29 @@ void cv_broadcast(struct cv *cv, struct lock *lock);
  */
 
 struct rwlock {
-        char *rwlock_name;
+    char *rwlock_name;
+		/*
 		struct lock *rw_lock;
 		struct cv *rw_ready;
-				// struct cv *rw_to_write;
 		int rw_reader_in_queue;
 		int rw_writer_in_queue;
 		int rw_reader_in_held;
 		int rw_writer_in_held;
 		struct spinlock rw_spinlock;
-        // add what you need here
-        // (don't forget to mark things volatile as needed)
+		*/
+      // add what you need here
+      // (don't forget to mark things volatile as needed)
+	struct lock *rwlk_lock;
+	struct cv *rwlk_cv;
+	struct spinlock rwlk_read_spinlock;
+	struct spinlock rwlk_write_spinlock;
+	struct wchan *rwlk_read_wchan;
+	struct wchan *rwlk_write_wchan;
+	struct thread *rwlk_curThread;
+	int rwlk_read_count;
+	int rwlk_write_count;
+
+
 };
 
 struct rwlock * rwlock_create(const char *);
