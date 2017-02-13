@@ -73,7 +73,7 @@ void V(struct semaphore *);
  * (should be) made internally.
  */
 struct lock {
-        char *lk_name;
+    char *lk_name;
 	struct wchan *lk_wchan;
 	struct spinlock lk_spinlock;
 	bool lk_used;
@@ -155,6 +155,14 @@ void cv_broadcast(struct cv *cv, struct lock *lock);
 
 struct rwlock {
         char *rwlock_name;
+		struct lock *rw_lock;
+		struct cv *rw_ready;
+				// struct cv *rw_to_write;
+		int rw_reader_in_queue;
+		int rw_writer_in_queue;
+		int rw_reader_in_held;
+		int rw_writer_in_held;
+		struct spinlock rw_spinlock;
         // add what you need here
         // (don't forget to mark things volatile as needed)
 };

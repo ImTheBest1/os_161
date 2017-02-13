@@ -178,7 +178,7 @@ lock_destroy(struct lock *lock)
 	spinlock_cleanup(&lock->lk_spinlock);
 	wchan_destroy(lock->lk_wchan);
 	kfree(lock->lk_name);
-  	kfree(lock->lk_curThread);
+  kfree(lock->lk_curThread);
 	kfree(lock);
 }
 
@@ -186,7 +186,7 @@ void
 lock_acquire(struct lock *lock)
 {
 	/* Call this (atomically) once the lock is acquired */
-	HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
+	//HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
 	//write this
 	// follow P(struct semaphore *sem) function
 	KASSERT(lock != NULL);
@@ -200,6 +200,9 @@ lock_acquire(struct lock *lock)
 	KASSERT(curthread->t_in_interrupt == false);
 
 	spinlock_acquire(&lock->lk_spinlock);
+	/* Call this (atomically) once the lock is acquired */
+	HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
+
 	// if lock is used, put it to sleep
     	while(lock->lk_used){
 		wchan_sleep(lock->lk_wchan,&lock->lk_spinlock);
@@ -221,7 +224,7 @@ lock_release(struct lock *lock)
 	//HANGMAN_RELEASE(&curthread->t_hangman, &lock->lk_hangman);
 
 	// Write this
-	// follow V(struct semaphore *sem) function				
+	// follow V(struct semaphore *sem) function
   	KASSERT(lock != NULL);
 	KASSERT(lock->lk_curThread != NULL);
 
@@ -233,6 +236,9 @@ lock_release(struct lock *lock)
 	lock->lk_curThread = NULL;
 
 	spinlock_release(&lock->lk_spinlock);
+	/* Call this (atomically) once the lock is released */
+	HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
+
 }
 
 bool
@@ -240,13 +246,13 @@ lock_do_i_hold(struct lock *lock)
 {
 	// Write this
 	KASSERT(lock != NULL);
-	bool hasHold = false;	
-	
+	bool hasHold = false;
+
   	if(lock->lk_curThread == curthread && lock->lk_used){
 		hasHold = true;
 	}else{
 		hasHold = false;
-	}	
+	}
 
 	return hasHold;
   // suppress warning until code gets written
@@ -283,7 +289,7 @@ cv_create(const char *name)
 		return NULL;
 	}
 
-	spinlock_init(&cv->cv_spinlock);	
+	spinlock_init(&cv->cv_spinlock);
 
 	return cv;
 }
@@ -292,9 +298,9 @@ void
 cv_destroy(struct cv *cv)
 {
 	KASSERT(cv != NULL);
-	
+
 	kfree(cv->cv_name);
-	
+
 	wchan_destroy(cv->cv_wchan);
 	spinlock_cleanup(&cv->cv_spinlock);
 	kfree(cv);
@@ -310,7 +316,7 @@ cv_wait(struct cv *cv, struct lock *lock)
 	KASSERT(lock_do_i_hold(lock));
 
 	// before lease the lock, make sure the lock can release properly
-	// spinlock_acquire before lock_release to fill the gap	
+	// spinlock_acquire before lock_release to fill the gap
 	spinlock_acquire(&cv->cv_spinlock);
 	lock_release(lock);
 	//spinlock_acquire(&cv->cv_spinlock);
@@ -323,7 +329,7 @@ cv_wait(struct cv *cv, struct lock *lock)
 
 void
 cv_signal(struct cv *cv, struct lock *lock)
-{	
+{
 	KASSERT(cv != NULL);
 	KASSERT(lock != NULL);
 	KASSERT(lock_do_i_hold(lock));
@@ -332,8 +338,6 @@ cv_signal(struct cv *cv, struct lock *lock)
 	wchan_wakeone(cv->cv_wchan, &cv->cv_spinlock);
 //	V(cv->cv_semaphore);
 	spinlock_release(&cv->cv_spinlock);
-
-
 
 }
 
@@ -348,4 +352,107 @@ cv_broadcast(struct cv *cv, struct lock *lock)
 	spinlock_acquire(&cv->cv_spinlock);
 	wchan_wakeall(cv->cv_wchan, &cv->cv_spinlock);
 	spinlock_release(&cv->cv_spinlock);
+}
+
+
+//////// RW//////////////////////////////////////////////
+////////////////////////
+
+struct rwlock *
+rwlock_create(const char *name)
+{
+	struct rwlock *rwlock;
+
+	rwlock = kmalloc(sizeof(*rwlock));
+	if (rwlock == NULL) {
+		return NULL;
+	}
+
+	rwlock->rwlock_name = kstrdup(name);
+	if (rwlock->rwlock_name==NULL) {
+		kfree(rwlock);
+		return NULL;
+	}
+
+	// add stuff here as needed
+	rwlock->rw_lock = lock_create(rwlock->rwlock_name);
+	if (rwlock->rw_lock == NULL) {
+		kfree(rwlock->rwlock_name);
+		kfree(rwlock);
+		return NULL;
+	}
+	rwlock->rw_ready = cv_create(rwlock->rwlock_name);
+	if (rwlock->rw_ready == NULL) {
+		lock_destroy(rwlock->rw_lock);
+		kfree(rwlock);
+		return NULL;
+	}
+	spinlock_init(&rwlock->rw_spinlock);
+	// rwlock->rw_to_write = cv_create(rwlock->rwlock_name);
+	// KASSERT(rwlock->rw_to_write == NULL);
+  rwlock->rw_reader_in_queue=0;
+	// this reader count is for the reader that waiting in the queue and blocked by writing signal
+	rwlock->rw_writer_in_queue=0;
+	// same writer counter as reader counter
+  rwlock->rw_reader_in_held=0;
+	//the reader that successfully acquired into stack
+	rwlock->rw_writer_in_held=0;
+	//same writer
+	return rwlock;
+}
+void rwlock_destroy(struct rwlock *rwlock)
+{
+	KASSERT(rwlock==NULL);
+	//check the rwlock is existing
+
+	//release all requesting resource
+	// cv_destroy(	rwlock->rw_to_write);
+	cv_destroy(	rwlock->rw_ready);
+	spinlock_cleanup(&rwlock->rw_spinlock);
+	lock_destroy(rwlock->rw_lock);
+	kfree(rwlock->rwlock_name);
+	kfree(rwlock);
+}
+void rwlock_acquire_read(struct rwlock *rwlock)
+{
+	lock_acquire(rwlock->rw_lock);
+	rwlock->rw_reader_in_queue++;//add the pending queue first
+	while(rwlock->rw_writer_in_held > 0){
+		// pending process
+    cv_wait(rwlock->rw_ready,rwlock->rw_lock);
+	}
+	rwlock->rw_reader_in_held++;// passed the while loop,acquire succeed
+	rwlock->rw_reader_in_queue--;// out of pending queue
+	lock_release(rwlock->rw_lock);
+}
+void rwlock_release_read(struct rwlock *rwlock){
+	//add
+	lock_acquire(rwlock->rw_lock);
+	rwlock->rw_reader_in_held--;
+	lock_release(rwlock->rw_lock);
+	if(rwlock->rw_reader_in_held == 0){
+			cv_broadcast(rwlock->rw_ready,rwlock->rw_lock);
+	}
+
+}
+void rwlock_acquire_write(struct rwlock *rwlock){
+  lock_acquire(rwlock->rw_lock);
+	rwlock->rw_writer_in_queue++; //add to pending queue
+	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0){
+		  cv_wait(rwlock->rw_ready,rwlock->rw_lock);
+	}
+	rwlock->rw_writer_in_queue--;//unqueue
+	rwlock->rw_writer_in_held++;//acquire section succed
+  lock_release(rwlock->rw_lock);
+}
+void rwlock_release_write(struct rwlock *rwlock){
+
+	lock_acquire(rwlock->rw_lock);
+	rwlock->rw_writer_in_held--;
+	lock_release(rwlock->rw_lock);
+	  // if still some writer in queue
+	if(rwlock->rw_writer_in_held == 0){
+	cv_broadcast(rwlock->rw_ready,rwlock->rw_lock);
+	// signal for next writer
+  }
 }
