@@ -117,7 +117,7 @@ bool lock_do_i_hold(struct lock *);
  */
 
 struct cv {
-    char *cv_name;
+  char *cv_name;
 	struct wchan *cv_wchan;
 	struct spinlock cv_spinlock;
 //	struct semaphore *cv_semaphore;
@@ -154,29 +154,14 @@ void cv_broadcast(struct cv *cv, struct lock *lock);
  */
 
 struct rwlock {
-    char *rwlock_name;
-		/*
-		struct lock *rw_lock;
-		struct cv *rw_ready;
-		int rw_reader_in_queue;
-		int rw_writer_in_queue;
-		int rw_reader_in_held;
-		int rw_writer_in_held;
-		struct spinlock rw_spinlock;
-		*/
-      // add what you need here
-      // (don't forget to mark things volatile as needed)
-	struct lock *rwlk_lock;
-	struct cv *rwlk_cv;
-	struct spinlock rwlk_read_spinlock;
-	struct spinlock rwlk_write_spinlock;
-	struct wchan *rwlk_read_wchan;
-	struct wchan *rwlk_write_wchan;
-	struct thread *rwlk_curThread;
-	int rwlk_read_count;
-	int rwlk_write_count;
-
-
+  char *rwlock_name;
+  // add what you need here
+  // (don't forget to mark things volatile as needed)
+	struct lock *rwlk_lock;	// lock has thread
+	struct cv *rwlk_read_cv; // pass cv, cv take care of wchan
+	struct cv *rwlk_write_cv;
+	volatile unsigned rwlk_readThread_count;
+	volatile unsigned rwlk_writeThread_count;
 };
 
 struct rwlock * rwlock_create(const char *);
