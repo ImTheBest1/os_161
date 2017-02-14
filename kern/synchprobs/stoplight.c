@@ -72,6 +72,14 @@
 /*
  * Called by the driver during initialization.
  */
+ static struct lock *lk_car1;
+ static struct lock *lk_car2;
+ static struct lock *lk_car3;
+ static struct lock *lk_car4;
+
+
+
+ 
 
 void
 stoplight_init() {
