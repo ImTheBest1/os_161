@@ -332,7 +332,7 @@ cv_signal(struct cv *cv, struct lock *lock)
 {
 	KASSERT(cv != NULL);
 	KASSERT(lock != NULL);
-	//KASSERT(lock_do_i_hold(lock));
+	KASSERT(lock_do_i_hold(lock));
 
 	spinlock_acquire(&cv->cv_spinlock);
 	wchan_wakeone(cv->cv_wchan, &cv->cv_spinlock);
