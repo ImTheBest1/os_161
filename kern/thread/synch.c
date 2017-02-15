@@ -213,7 +213,7 @@ lock_acquire(struct lock *lock)
 	spinlock_release(&lock->lk_spinlock);
 
 
-	(void)lock;  // suppress warning until code gets written
+	//(void)lock;  // suppress warning until code gets written
 
 }
 
@@ -399,7 +399,6 @@ rwlock_create(const char *name)
 	rwlock->rw_writer_in_held=0;
 	//same writer
 	return rwlock;
-<<<<<<< ff8a735b67f16bed7d0689d15fd798e18901e88a
 
 }
 
@@ -407,14 +406,6 @@ void rwlock_destroy(struct rwlock *rwlock)
 {
 	//KASSERT(rwlock==NULL);
 	//check the rwlock is existing
-=======
-}
-void rwlock_destroy(struct rwlock *rwlock)
-{
-	KASSERT(rwlock==NULL);
-	//check the rwlock is existing
-
->>>>>>> approach starve issue of rwlock
 	//release all requesting resource
 	cv_destroy(	rwlock->rw_to_write);
 	cv_destroy(	rwlock->rw_to_read);
@@ -423,10 +414,7 @@ void rwlock_destroy(struct rwlock *rwlock)
 	kfree(rwlock->rwlock_name);
 	kfree(rwlock);
 }
-<<<<<<< ff8a735b67f16bed7d0689d15fd798e18901e88a
 
-=======
->>>>>>> approach starve issue of rwlock
 void rwlock_acquire_read(struct rwlock *rwlock)
 {
 	lock_acquire(rwlock->rw_lock);
@@ -439,18 +427,13 @@ void rwlock_acquire_read(struct rwlock *rwlock)
 	rwlock->rw_reader_in_queue--;// out of pending queue
 	lock_release(rwlock->rw_lock);
 }
-<<<<<<< ff8a735b67f16bed7d0689d15fd798e18901e88a
 
 void rwlock_release_read(struct rwlock *rwlock)
 {
-=======
-void rwlock_release_read(struct rwlock *rwlock){
->>>>>>> approach starve issue of rwlock
 	//add
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_held--;
 	lock_release(rwlock->rw_lock);
-<<<<<<< ff8a735b67f16bed7d0689d15fd798e18901e88a
 	if(rwlock->rw_writer_in_queue > 0){
 			cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
 	}
@@ -464,46 +447,23 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_queue++; //add to pending queue
 	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0){
-=======
-	// if(rwlock->rw_reader_in_held == 0){
-			cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
-	// }
-
-}
-void rwlock_acquire_write(struct rwlock *rwlock){
-  lock_acquire(rwlock->rw_lock);
-	rwlock->rw_writer_in_queue++; //add to pending queue
-	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 ||rwlock->rw_writer_in_queue > 0 ){
->>>>>>> approach starve issue of rwlock
 		  cv_wait(rwlock->rw_to_write,rwlock->rw_lock);
 	}
 	rwlock->rw_writer_in_queue--;//unqueue
 	rwlock->rw_writer_in_held++;//acquire section succed
   lock_release(rwlock->rw_lock);
 }
-<<<<<<< ff8a735b67f16bed7d0689d15fd798e18901e88a
 
 void rwlock_release_write(struct rwlock *rwlock)
 {
-=======
-void rwlock_release_write(struct rwlock *rwlock){
-
->>>>>>> approach starve issue of rwlock
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_held--;
 	lock_release(rwlock->rw_lock);
 	  // if still some writer in queue
-<<<<<<< ff8a735b67f16bed7d0689d15fd798e18901e88a
 	if(rwlock->rw_writer_in_queue > 0){
 	cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
 	// signal for next writer
 }else{
 	cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
 }
-=======
-	if(rwlock->rw_writer_in_held == 0){
-	cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
-	// signal for next writer
-  }
->>>>>>> approach starve issue of rwlock
 }

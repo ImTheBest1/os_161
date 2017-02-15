@@ -153,6 +153,7 @@ void cv_broadcast(struct cv *cv, struct lock *lock);
  * (should be) made internally.
  */
 
+<<<<<<< HEAD
 <<<<<<< ff8a735b67f16bed7d0689d15fd798e18901e88a
 struct rwlock {
   char *rwlock_name;
@@ -188,6 +189,8 @@ void rwlock_release_write(struct rwlock *);
 
 #endif /* _SYNCH_H_ */
 =======
+=======
+>>>>>>> 349ee3bab25401d96adc958cc6d24a17804cab13
  struct rwlock {
          char *rwlock_name;
  				struct lock *rw_lock;
@@ -223,4 +226,7 @@ void rwlock_release_write(struct rwlock *);
  void rwlock_release_write(struct rwlock *);
 
  #endif /* _SYNCH_H_ */
+<<<<<<< HEAD
 >>>>>>> approach starve issue of rwlock
+=======
+>>>>>>> 349ee3bab25401d96adc958cc6d24a17804cab13
