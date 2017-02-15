@@ -399,6 +399,7 @@ rwlock_create(const char *name)
 	rwlock->rw_writer_in_held=0;
 	//same writer
 	return rwlock;
+
 }
 
 void rwlock_destroy(struct rwlock *rwlock)
@@ -459,5 +460,5 @@ void rwlock_release_write(struct rwlock *rwlock)
 	if(rwlock->rw_writer_in_held == 0){
 	cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
 	// signal for next writer
-}
+  }
 }
