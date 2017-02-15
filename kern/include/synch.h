@@ -162,7 +162,6 @@ struct rwlock {
   volatile int rw_writer_in_queue;
   volatile int rw_reader_in_held;
   volatile int rw_writer_in_held;
-  struct spinlock rw_spinlock;
 };
 
 struct rwlock * rwlock_create(const char *);
