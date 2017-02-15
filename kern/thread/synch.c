@@ -449,7 +449,7 @@ void rwlock_release_read(struct rwlock *rwlock)
 	//KASSERT(rwlock->rw_reader_in_held <= 0);
 	// KASSERT(rwlock->rw_writer_in_queue < 0);
 	//KASSERT(rwlock->rw_reader_in_queue <= 0);
-	KASSERT(rwlock->rw_writer_in_held < 0);
+	//KASSERT(rwlock->rw_writer_in_held < 0);
 	//add
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_held--;
@@ -490,7 +490,6 @@ void rwlock_release_write(struct rwlock *rwlock)
 	KASSERT(rwlock->rw_writer_in_held <= 0);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_held--;
-
 	  // if still some writer in queue
 	if(rwlock->rw_reader_in_queue > 0){
 		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
