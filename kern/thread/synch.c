@@ -413,10 +413,6 @@ void rwlock_destroy(struct rwlock *rwlock)
 	//release all requesting resource
 	cv_destroy(	rwlock->rw_to_write);
 	cv_destroy(	rwlock->rw_to_read);
-	kfree(rwlock->rw_reader_in_held);
-	kfree(rwlock->rw_writer_in_queue);
-	kfree(rwlock->rw_reader_in_queue);
-	kfree(rwlock->rw_writer_in_held);
 	spinlock_cleanup(&rwlock->rw_spinlock);
 	lock_destroy(rwlock->rw_lock);
 	kfree(rwlock->rwlock_name);
