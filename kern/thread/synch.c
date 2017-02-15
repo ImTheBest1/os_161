@@ -442,7 +442,7 @@ void rwlock_release_read(struct rwlock *rwlock)
 	KASSERT(rwlock != NULL);
 	//KASSERT(rwlock->rw_reader_in_held < 0);
 	// KASSERT(rwlock->rw_writer_in_queue < 0);
-	   KASSERT(rwlock->rw_reader_in_queue < 0);
+	//KASSERT(rwlock->rw_reader_in_queue < 0);
 	// KASSERT(rwlock->rw_writer_in_held < 0);
 	//add
 	lock_acquire(rwlock->rw_lock);
