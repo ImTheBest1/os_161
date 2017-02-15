@@ -399,14 +399,12 @@ rwlock_create(const char *name)
 	rwlock->rw_writer_in_held=0;
 	//same writer
 	return rwlock;
-
 }
 
 void rwlock_destroy(struct rwlock *rwlock)
 {
-	KASSERT(rwlock==NULL);
+	//KASSERT(rwlock==NULL);
 	//check the rwlock is existing
-
 	//release all requesting resource
 	cv_destroy(	rwlock->rw_to_write);
 	cv_destroy(	rwlock->rw_to_read);
@@ -443,13 +441,13 @@ void rwlock_release_read(struct rwlock *rwlock)
 void rwlock_acquire_write(struct rwlock *rwlock)
 {
 	lock_acquire(rwlock->rw_lock);
-  	rwlock->rw_writer_in_queue++; //add to pending queue
-  	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 ||rwlock->rw_writer_in_queue > 0 ){
-  		  cv_wait(rwlock->rw_to_write,rwlock->rw_lock);
-  	}
-  	rwlock->rw_writer_in_queue--;//unqueue
-  	rwlock->rw_writer_in_held++;//acquire section succed
-    lock_release(rwlock->rw_lock);
+	rwlock->rw_writer_in_queue++; //add to pending queue
+	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 ||rwlock->rw_writer_in_queue > 0 ){
+		  cv_wait(rwlock->rw_to_write,rwlock->rw_lock);
+	}
+	rwlock->rw_writer_in_queue--;//unqueue
+	rwlock->rw_writer_in_held++;//acquire section succed
+  lock_release(rwlock->rw_lock);
 }
 
 void rwlock_release_write(struct rwlock *rwlock)
@@ -459,8 +457,7 @@ void rwlock_release_write(struct rwlock *rwlock)
 	lock_release(rwlock->rw_lock);
 	  // if still some writer in queue
 	if(rwlock->rw_writer_in_held == 0){
-		cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
-		// signal for next writer
-	}
-
+	cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
+	// signal for next writer
+}
 }
