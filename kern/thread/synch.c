@@ -401,9 +401,8 @@ rwlock_create(const char *name)
 }
 void rwlock_destroy(struct rwlock *rwlock)
 {
-	KASSERT(rwlock==NULL);
+	//KASSERT(rwlock==NULL);
 	//check the rwlock is existing
-
 	//release all requesting resource
 	cv_destroy(	rwlock->rw_to_write);
 	cv_destroy(	rwlock->rw_to_read);
