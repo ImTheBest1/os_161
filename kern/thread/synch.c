@@ -405,6 +405,10 @@ rwlock_create(const char *name)
 void rwlock_destroy(struct rwlock *rwlock)
 {
 	KASSERT(rwlock != NULL);
+	KASSERT(rwlock->rw_reader_in_held < 0);
+	KASSERT(rwlock->rw_writer_in_queue < 0);
+	KASSERT(rwlock->rw_reader_in_queue < 0);
+	KASSERT(rwlock->rw_writer_in_held < 0);
 	//check the rwlock is existing
 	//release all requesting resource
 	cv_destroy(	rwlock->rw_to_write);
@@ -418,6 +422,10 @@ void rwlock_destroy(struct rwlock *rwlock)
 void rwlock_acquire_read(struct rwlock *rwlock)
 {
 	KASSERT(rwlock != NULL);
+	KASSERT(rwlock->rw_reader_in_held < 0);
+	KASSERT(rwlock->rw_writer_in_queue < 0);
+	KASSERT(rwlock->rw_reader_in_queue < 0);
+	KASSERT(rwlock->rw_writer_in_held < 0);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_queue++;//add the pending queue first
 	while(rwlock->rw_writer_in_held > 0||rwlock->rw_writer_in_queue > 0){
@@ -432,6 +440,10 @@ void rwlock_acquire_read(struct rwlock *rwlock)
 void rwlock_release_read(struct rwlock *rwlock)
 {
 	KASSERT(rwlock != NULL);
+	KASSERT(rwlock->rw_reader_in_held < 0);
+	KASSERT(rwlock->rw_writer_in_queue < 0);
+	KASSERT(rwlock->rw_reader_in_queue < 0);
+	KASSERT(rwlock->rw_writer_in_held < 0);
 	//add
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_held--;
@@ -449,6 +461,10 @@ void rwlock_release_read(struct rwlock *rwlock)
 void rwlock_acquire_write(struct rwlock *rwlock)
 {
 	KASSERT(rwlock != NULL);
+	KASSERT(rwlock->rw_reader_in_held < 0);
+	KASSERT(rwlock->rw_writer_in_queue < 0);
+	KASSERT(rwlock->rw_reader_in_queue < 0);
+	KASSERT(rwlock->rw_writer_in_held < 0);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_queue++; //add to pending queue
 	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 || rwlock->rw_reader_in_queue > 0){
@@ -462,6 +478,10 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 void rwlock_release_write(struct rwlock *rwlock)
 {
 	KASSERT(rwlock != NULL);
+	KASSERT(rwlock->rw_reader_in_held < 0);
+	KASSERT(rwlock->rw_writer_in_queue < 0);
+	KASSERT(rwlock->rw_reader_in_queue < 0);
+	KASSERT(rwlock->rw_writer_in_held < 0);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_held--;
 
