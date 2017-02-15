@@ -347,7 +347,7 @@ cv_broadcast(struct cv *cv, struct lock *lock)
 	// Write this
 	KASSERT(cv != NULL);
 	KASSERT(lock != NULL);
-	//KASSERT(lock_do_i_hold(lock));
+	KASSERT(lock_do_i_hold(lock));
 
 	spinlock_acquire(&cv->cv_spinlock);
 	wchan_wakeall(cv->cv_wchan, &cv->cv_spinlock);
@@ -433,14 +433,14 @@ void rwlock_release_read(struct rwlock *rwlock)
 	//add
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_held--;
-	lock_release(rwlock->rw_lock);
+
 	if(rwlock->rw_writer_in_queue > 0){
 			cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
 	}
 	else{
 		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
 	}
-
+	lock_release(rwlock->rw_lock);
 }
 
 void rwlock_acquire_write(struct rwlock *rwlock)
@@ -459,7 +459,7 @@ void rwlock_release_write(struct rwlock *rwlock)
 {
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_held--;
-	lock_release(rwlock->rw_lock);
+
 	  // if still some writer in queue
 	if(rwlock->rw_writer_in_queue > 0){
 		cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
@@ -467,4 +467,6 @@ void rwlock_release_write(struct rwlock *rwlock)
 	}else{
 		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
 	}
+
+	lock_release(rwlock->rw_lock);
 }
