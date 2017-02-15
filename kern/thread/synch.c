@@ -404,7 +404,7 @@ rwlock_create(const char *name)
 
 void rwlock_destroy(struct rwlock *rwlock)
 {
-	//KASSERT(rwlock==NULL);
+	KASSERT(rwlock != NULL);
 	//check the rwlock is existing
 	//release all requesting resource
 	cv_destroy(	rwlock->rw_to_write);
@@ -417,6 +417,7 @@ void rwlock_destroy(struct rwlock *rwlock)
 
 void rwlock_acquire_read(struct rwlock *rwlock)
 {
+	KASSERT(rwlock != NULL);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_queue++;//add the pending queue first
 	while(rwlock->rw_writer_in_held > 0||rwlock->rw_writer_in_queue > 0){
@@ -430,6 +431,7 @@ void rwlock_acquire_read(struct rwlock *rwlock)
 
 void rwlock_release_read(struct rwlock *rwlock)
 {
+	KASSERT(rwlock != NULL);
 	//add
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_held--;
@@ -440,14 +442,16 @@ void rwlock_release_read(struct rwlock *rwlock)
 	else{
 		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
 	}
+
 	lock_release(rwlock->rw_lock);
 }
 
 void rwlock_acquire_write(struct rwlock *rwlock)
 {
+	KASSERT(rwlock != NULL);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_queue++; //add to pending queue
-	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0){
+	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 || rwlock->rw_reader_in_queue > 0){
 		  cv_wait(rwlock->rw_to_write,rwlock->rw_lock);
 	}
 	rwlock->rw_writer_in_queue--;//unqueue
@@ -457,6 +461,7 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 
 void rwlock_release_write(struct rwlock *rwlock)
 {
+	KASSERT(rwlock != NULL);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_held--;
 
