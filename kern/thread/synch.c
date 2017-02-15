@@ -424,7 +424,7 @@ void rwlock_acquire_read(struct rwlock *rwlock)
 	KASSERT(rwlock != NULL);
 	//KASSERT(rwlock->rw_reader_in_held < 0);
 	// KASSERT(rwlock->rw_writer_in_queue < 0);
-	KASSERT(rwlock->rw_reader_in_queue < 0);
+	//KASSERT(rwlock->rw_reader_in_queue < 0);
 	// KASSERT(rwlock->rw_writer_in_held < 0);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_queue++;//add the pending queue first
@@ -464,7 +464,7 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 	//KASSERT(rwlock->rw_reader_in_held < 0);
 	//KASSERT(rwlock->rw_writer_in_queue < 0);
 	//KASSERT(rwlock->rw_reader_in_queue < 0);
-	KASSERT(rwlock->rw_writer_in_held < 0);
+	//KASSERT(rwlock->rw_writer_in_held < 0);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_queue++; //add to pending queue
 	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 || rwlock->rw_reader_in_queue > 0){
