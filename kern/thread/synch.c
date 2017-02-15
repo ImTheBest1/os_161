@@ -384,11 +384,18 @@ rwlock_create(const char *name)
 	rwlock->rw_to_read = cv_create(rwlock->rwlock_name);
 	if (rwlock->rw_to_read == NULL) {
 		lock_destroy(rwlock->rw_lock);
+			kfree(rwlock->rwlock_name);
 		kfree(rwlock);
 		return NULL;
 	}
-	spinlock_init(&rwlock->rw_spinlock);
 	rwlock->rw_to_write = cv_create(rwlock->rwlock_name);
+	if (rwlock->rw_to_write == NULL) {
+		cv_destroy(rwlock->rw_to_read);
+		lock_destroy(rwlock->rw_lock);
+		kfree(rwlock->rwlock_name);
+		kfree(rwlock);
+		return NULL;
+	}
 	// KASSERT(rwlock->rw_to_write == NULL);
   rwlock->rw_reader_in_queue=0;
 	// this reader count is for the reader that waiting in the queue and blocked by writing signal
@@ -413,7 +420,6 @@ void rwlock_destroy(struct rwlock *rwlock)
 	//release all requesting resource
 	cv_destroy(	rwlock->rw_to_write);
 	cv_destroy(	rwlock->rw_to_read);
-	spinlock_cleanup(&rwlock->rw_spinlock);
 	lock_destroy(rwlock->rw_lock);
 	kfree(rwlock->rwlock_name);
 	kfree(rwlock);
@@ -440,15 +446,14 @@ void rwlock_acquire_read(struct rwlock *rwlock)
 void rwlock_release_read(struct rwlock *rwlock)
 {
 	KASSERT(rwlock != NULL);
-	KASSERT(rwlock->rw_reader_in_held == 0);
+	KASSERT(rwlock->rw_reader_in_held <= 0);
 	// KASSERT(rwlock->rw_writer_in_queue < 0);
-	//KASSERT(rwlock->rw_reader_in_queue < 0);
-	// KASSERT(rwlock->rw_writer_in_held < 0);
+	//KASSERT(rwlock->rw_reader_in_queue <= 0);
+	 KASSERT(rwlock->rw_writer_in_held < 0);
 	//add
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_held--;
-
-	if(rwlock->rw_writer_in_queue > 0){
+	if(rwlock->rw_writer_in_queue > 0 && rwlock->rw_reader_in_held==0){
 		cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
 	}
 	else{
@@ -467,9 +472,10 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 	//KASSERT(rwlock->rw_writer_in_held < 0);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_queue++; //add to pending queue
-	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 || rwlock->rw_reader_in_queue > 0){
+	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 ){
 		  cv_wait(rwlock->rw_to_write,rwlock->rw_lock);
 	}
+	// rwlock->rw_reader_in_queue > 0
 	rwlock->rw_writer_in_queue--;//unqueue
 	rwlock->rw_writer_in_held++;//acquire section succed
   lock_release(rwlock->rw_lock);
@@ -478,7 +484,7 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 void rwlock_release_write(struct rwlock *rwlock)
 {
 	KASSERT(rwlock != NULL);
-	//KASSERT(rwlock->rw_reader_in_held < 0);
+	KASSERT(rwlock->rw_reader_in_held < 0);
 	//KASSERT(rwlock->rw_writer_in_queue < 0);
 	//KASSERT(rwlock->rw_reader_in_queue < 0);
 	KASSERT(rwlock->rw_writer_in_held == 0);
