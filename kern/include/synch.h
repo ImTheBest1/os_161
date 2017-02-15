@@ -155,13 +155,14 @@ void cv_broadcast(struct cv *cv, struct lock *lock);
 
 struct rwlock {
   char *rwlock_name;
-  // add what you need here
-  // (don't forget to mark things volatile as needed)
-	struct lock *rwlk_lock;	// lock has thread
-	struct cv *rwlk_read_cv; // pass cv, cv take care of wchan
-	struct cv *rwlk_write_cv;
-	volatile unsigned rwlk_readThread_count;
-	volatile unsigned rwlk_writeThread_count;
+  struct lock *rw_lock;
+  struct cv *rw_to_read;
+  struct cv *rw_to_write;
+  int rw_reader_in_queue;
+  int rw_writer_in_queue;
+  int rw_reader_in_held;
+  int rw_writer_in_held;
+  struct spinlock rw_spinlock;
 };
 
 struct rwlock * rwlock_create(const char *);
