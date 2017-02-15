@@ -73,7 +73,7 @@ check_thread(volatile void* threads[], uint32_t index) {
 #define MATCHMAKER 2
 #define CHECK_TIMES 32
 
-static volatile int _count;
+static volatile int male_start_count;
 static volatile int male_end_count;
 static volatile int female_start_count;
 static volatile int female_end_count;
