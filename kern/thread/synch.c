@@ -434,16 +434,19 @@ void rwlock_release_read(struct rwlock *rwlock)
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_held--;
 	lock_release(rwlock->rw_lock);
-	// if(rwlock->rw_reader_in_held == 0){
-			cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
-	// }
+	if(rwlock->rw_writer_in_queue > 0){
+			cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
+	}
+	else{
+		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
+	}
 }
 
 void rwlock_acquire_write(struct rwlock *rwlock)
 {
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_queue++; //add to pending queue
-	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 ||rwlock->rw_writer_in_queue > 0 ){
+	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0){
 		  cv_wait(rwlock->rw_to_write,rwlock->rw_lock);
 	}
 	rwlock->rw_writer_in_queue--;//unqueue
@@ -457,8 +460,10 @@ void rwlock_release_write(struct rwlock *rwlock)
 	rwlock->rw_writer_in_held--;
 	lock_release(rwlock->rw_lock);
 	  // if still some writer in queue
-	if(rwlock->rw_writer_in_held == 0){
+	if(rwlock->rw_writer_in_queue > 0){
 	cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
 	// signal for next writer
-  }
+}else{
+	cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
+}
 }
