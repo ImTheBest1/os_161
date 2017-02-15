@@ -373,134 +373,85 @@ rwlock_create(const char *name)
 		return NULL;
 	}
 
-	// create a read cv
-	rwlock->rwlk_read_cv = cv_create(rwlock->rwlock_name);
-	if(rwlock->rwlk_read_cv == NULL){
+	// add stuff here as needed
+	rwlock->rw_lock = lock_create(rwlock->rwlock_name);
+	if (rwlock->rw_lock == NULL) {
 		kfree(rwlock->rwlock_name);
 		kfree(rwlock);
 		return NULL;
 	}
-
-	// create a write cv
-	rwlock->rwlk_write_cv = cv_create(rwlock->rwlock_name);
-	if(rwlock->rwlk_write_cv == NULL){
-		cv_destroy(rwlock->rwlk_read_cv);
-		kfree(rwlock->rwlock_name);
+	rwlock->rw_to_read = cv_create(rwlock->rwlock_name);
+	if (rwlock->rw_to_read == NULL) {
+		lock_destroy(rwlock->rw_lock);
 		kfree(rwlock);
 		return NULL;
 	}
-
-	// create a lock
-	rwlock->rwlk_lock = lock_create(rwlock->rwlock_name);
-	if(rwlock->rwlk_lock == NULL){
-		cv_destroy(rwlock->rwlk_write_cv);
-		cv_destroy(rwlock->rwlk_read_cv);
-		kfree(rwlock->rwlock_name);
-		kfree(rwlock);
-		return NULL;
-	}
-
-	rwlock->rwlk_readThread_count = 0;
-	rwlock->rwlk_writeThread_count = 0;
-
+	spinlock_init(&rwlock->rw_spinlock);
+	rwlock->rw_to_write = cv_create(rwlock->rwlock_name);
+	// KASSERT(rwlock->rw_to_write == NULL);
+  rwlock->rw_reader_in_queue=0;
+	// this reader count is for the reader that waiting in the queue and blocked by writing signal
+	rwlock->rw_writer_in_queue=0;
+	// same writer counter as reader counter
+  rwlock->rw_reader_in_held=0;
+	//the reader that successfully acquired into stack
+	rwlock->rw_writer_in_held=0;
+	//same writer
 	return rwlock;
 }
-
-
 void rwlock_destroy(struct rwlock *rwlock)
 {
 	KASSERT(rwlock==NULL);
+	//check the rwlock is existing
 
-	lock_destroy(rwlock->rwlk_lock);
-
-	cv_destroy(rwlock->rwlk_read_cv);
-	cv_destroy(rwlock->rwlk_write_cv);
-
+	//release all requesting resource
+	cv_destroy(	rwlock->rw_to_write);
+	cv_destroy(	rwlock->rw_to_read);
+	spinlock_cleanup(&rwlock->rw_spinlock);
+	lock_destroy(rwlock->rw_lock);
 	kfree(rwlock->rwlock_name);
 	kfree(rwlock);
 }
-
-
 void rwlock_acquire_read(struct rwlock *rwlock)
 {
-	/*rwlock_acquire_read  - Get the lock for reading. Multiple threads can
-  *                          hold the lock for reading at the same time.
-	*/
-	KASSERT(rwlock != NULL);
-
-	lock_acquire(rwlock->rwlk_lock);
-
-	// if rwlk_writeThread_count != 0, then there exists thread to write, then put the read to sleep
-	while(rwlock->rwlk_writeThread_count != 0){
-		cv_wait(rwlock->rwlk_read_cv, rwlock->rwlk_lock);
+	lock_acquire(rwlock->rw_lock);
+	rwlock->rw_reader_in_queue++;//add the pending queue first
+	while(rwlock->rw_writer_in_held > 0||rwlock->rw_writer_in_queue > 0){
+		// pending process
+    cv_wait(rwlock->rw_to_read,rwlock->rw_lock);
 	}
-
-	rwlock->rwlk_readThread_count++;	// count read
-
-	lock_release(rwlock->rwlk_lock);
+	rwlock->rw_reader_in_held++;// passed the while loop,acquire succeed
+	rwlock->rw_reader_in_queue--;// out of pending queue
+	lock_release(rwlock->rw_lock);
+}
+void rwlock_release_read(struct rwlock *rwlock){
+	//add
+	lock_acquire(rwlock->rw_lock);
+	rwlock->rw_reader_in_held--;
+	lock_release(rwlock->rw_lock);
+	// if(rwlock->rw_reader_in_held == 0){
+			cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
+	// }
 
 }
-
-
-void rwlock_release_read(struct rwlock *rwlock)
-{
-	/*
-	rwlock_release_read  - Free the lock.
-	*/
-	KASSERT(rwlock != NULL);
-
-	lock_acquire(rwlock->rwlk_lock);
-
-	rwlock->rwlk_readThread_count--;
-
-	while(rwlock->rwlk_writeThread_count == 0){
-
-		cv_signal(rwlock->rwlk_read_cv, rwlock->rwlk_lock);
+void rwlock_acquire_write(struct rwlock *rwlock){
+  lock_acquire(rwlock->rw_lock);
+	rwlock->rw_writer_in_queue++; //add to pending queue
+	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 ||rwlock->rw_writer_in_queue > 0 ){
+		  cv_wait(rwlock->rw_to_write,rwlock->rw_lock);
 	}
-
-	lock_release(rwlock->rwlk_lock);
-
+	rwlock->rw_writer_in_queue--;//unqueue
+	rwlock->rw_writer_in_held++;//acquire section succed
+  lock_release(rwlock->rw_lock);
 }
+void rwlock_release_write(struct rwlock *rwlock){
 
-
-void rwlock_acquire_write(struct rwlock *rwlock)
-{
-	/*
-  *    rwlock_acquire_write - Get the lock for writing. Only one thread can
-  *                           hold the write lock at one time.
-  */
-
-	KASSERT(rwlock != NULL);
-
-	lock_acquire(rwlock->rwlk_lock);
-	rwlock->rwlk_writeThread_count++;
-
-	while(rwlock->rwlk_writeThread_count != 0){
-		cv_wait(rwlock->rwlk_write_cv, rwlock->rwlk_lock);
-	}
-
-	rwlock->rwlk_writeThread_count--;
-
-	lock_release(rwlock->rwlk_lock);
-
-}
-
-
-void rwlock_release_write(struct rwlock *rwlock)
-{
-
-/*
-*    rwlock_release_write - Free the write lock.
-*/
-	KASSERT(rwlock != NULL);
-	// Write this
-	KASSERT(rwlock->rwlk_write_cv != NULL);
-	KASSERT(rwlock->rwlk_read_cv != NULL);
-	KASSERT(rwlock->rwlk_lock != NULL);
-	KASSERT(lock_do_i_hold(rwlock->rwlk_lock));
-
-	lock_acquire(rwlock->rwlk_lock);
-	cv_broadcast(rwlock->rwlk_read_cv, rwlock->rwlk_lock);
-	cv_signal(rwlock->rwlk_write_cv, rwlock->rwlk_lock);
-	lock_release(rwlock->rwlk_lock);
+	lock_acquire(rwlock->rw_lock);
+	rwlock->rw_writer_in_held--;
+	lock_release(rwlock->rw_lock);
+	  // if still some writer in queue
+	if(rwlock->rw_writer_in_held == 0){
+	cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
+	// signal for next writer
+  }
 }

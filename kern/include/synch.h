@@ -153,35 +153,38 @@ void cv_broadcast(struct cv *cv, struct lock *lock);
  * (should be) made internally.
  */
 
-struct rwlock {
-  char *rwlock_name;
-  // add what you need here
-  // (don't forget to mark things volatile as needed)
-	struct lock *rwlk_lock;	// lock has thread
-	struct cv *rwlk_read_cv; // pass cv, cv take care of wchan
-	struct cv *rwlk_write_cv;
-	volatile unsigned rwlk_readThread_count;
-	volatile unsigned rwlk_writeThread_count;
-};
+ struct rwlock {
+         char *rwlock_name;
+ 				struct lock *rw_lock;
+ 				struct cv *rw_to_read;
+ 				struct cv *rw_to_write;
+ 				int rw_reader_in_queue;
+ 				int rw_writer_in_queue;
+ 				int rw_reader_in_held;
+ 				int rw_writer_in_held;
+ 				struct spinlock rw_spinlock;
+         // add what you need here
+         // (don't forget to mark things volatile as needed)
+ };
 
-struct rwlock * rwlock_create(const char *);
-void rwlock_destroy(struct rwlock *);
+ struct rwlock * rwlock_create(const char *);
+ void rwlock_destroy(struct rwlock *);
 
-/*
- * Operations:
- *    rwlock_acquire_read  - Get the lock for reading. Multiple threads can
- *                          hold the lock for reading at the same time.
- *    rwlock_release_read  - Free the lock.
- *    rwlock_acquire_write - Get the lock for writing. Only one thread can
- *                           hold the write lock at one time.
- *    rwlock_release_write - Free the write lock.
- *
- * These operations must be atomic. You get to write them.
- */
+ /*
+  * Operations:
+  *    rwlock_acquire_read  - Get the lock for reading. Multiple threads can
+  *                          hold the lock for reading at the same time.
+  *    rwlock_release_read  - Free the lock.
+  *    rwlock_acquire_write - Get the lock for writing. Only one thread can
+  *                           hold the write lock at one time.
+  *    rwlock_release_write - Free the write lock.
+  *
+  * These operations must be atomic. You get to write them.
+  */
 
-void rwlock_acquire_read(struct rwlock *);
-void rwlock_release_read(struct rwlock *);
-void rwlock_acquire_write(struct rwlock *);
-void rwlock_release_write(struct rwlock *);
+ void rwlock_acquire_read(struct rwlock *);
+ void rwlock_release_read(struct rwlock *);
+ void rwlock_acquire_write(struct rwlock *);
+ void rwlock_release_write(struct rwlock *);
 
-#endif /* _SYNCH_H_ */
+ #endif /* _SYNCH_H_ */
