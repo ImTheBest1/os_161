@@ -153,6 +153,7 @@ void cv_broadcast(struct cv *cv, struct lock *lock);
  * (should be) made internally.
  */
 
+<<<<<<< ff8a735b67f16bed7d0689d15fd798e18901e88a
 struct rwlock {
   char *rwlock_name;
   struct lock *rw_lock;
@@ -186,3 +187,40 @@ void rwlock_acquire_write(struct rwlock *);
 void rwlock_release_write(struct rwlock *);
 
 #endif /* _SYNCH_H_ */
+=======
+ struct rwlock {
+         char *rwlock_name;
+ 				struct lock *rw_lock;
+ 				struct cv *rw_to_read;
+ 				struct cv *rw_to_write;
+ 				int rw_reader_in_queue;
+ 				int rw_writer_in_queue;
+ 				int rw_reader_in_held;
+ 				int rw_writer_in_held;
+ 				struct spinlock rw_spinlock;
+         // add what you need here
+         // (don't forget to mark things volatile as needed)
+ };
+
+ struct rwlock * rwlock_create(const char *);
+ void rwlock_destroy(struct rwlock *);
+
+ /*
+  * Operations:
+  *    rwlock_acquire_read  - Get the lock for reading. Multiple threads can
+  *                          hold the lock for reading at the same time.
+  *    rwlock_release_read  - Free the lock.
+  *    rwlock_acquire_write - Get the lock for writing. Only one thread can
+  *                           hold the write lock at one time.
+  *    rwlock_release_write - Free the write lock.
+  *
+  * These operations must be atomic. You get to write them.
+  */
+
+ void rwlock_acquire_read(struct rwlock *);
+ void rwlock_release_read(struct rwlock *);
+ void rwlock_acquire_write(struct rwlock *);
+ void rwlock_release_write(struct rwlock *);
+
+ #endif /* _SYNCH_H_ */
+>>>>>>> approach starve issue of rwlock
