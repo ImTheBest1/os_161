@@ -489,6 +489,10 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 
 void rwlock_release_write(struct rwlock *rwlock)
 {
+<<<<<<< HEAD
+=======
+	/*merge*/
+>>>>>>> asst1
 	KASSERT(rwlock != NULL);
 	KASSERT(rwlock->rw_reader_in_held >= 0);
 	KASSERT(rwlock->rw_writer_in_queue >= 0);
