@@ -40,20 +40,6 @@
 #include <current.h>
 #include <synch.h>
 
-//
-
-
-
-
-#include <types.h>
-#include <lib.h>
-#include <clock.h>
-#include <thread.h>
-#include <synch.h>
-#include <test.h>
-#include <kern/test161.h>
-#include <spinlock.h>
-
 ////////////////////////////////////////////////////////////
 //
 // Semaphore.
@@ -419,7 +405,6 @@ rwlock_create(const char *name)
 	//the reader that successfully acquired into stack
 	rwlock->rw_writer_in_held=0;
 	//same writer
-	kprintf_n("rwlock created!\n");
 	return rwlock;
 
 }
@@ -427,13 +412,12 @@ rwlock_create(const char *name)
 void rwlock_destroy(struct rwlock *rwlock)
 {
 	KASSERT(rwlock != NULL);
-	// KASSERT(rwlock->rw_reader_in_held < 0);
-	// KASSERT(rwlock->rw_writer_in_queue < 0);
-	// KASSERT(rwlock->rw_reader_in_queue < 0);
-	// KASSERT(rwlock->rw_writer_in_held < 0);
+	KASSERT(rwlock->rw_reader_in_held >= 0);
+	KASSERT(rwlock->rw_writer_in_queue >= 0);
+  KASSERT(rwlock->rw_reader_in_queue >= 0);
+	KASSERT(rwlock->rw_writer_in_held >= 0);
 	//check the rwlock is existing
 	//release all requesting resource
-	kprintf_n("rwlock destroyed!\n");
 	cv_destroy(	rwlock->rw_to_write);
 	cv_destroy(	rwlock->rw_to_read);
 	lock_destroy(rwlock->rw_lock);
@@ -449,9 +433,6 @@ void rwlock_acquire_read(struct rwlock *rwlock)
   KASSERT(rwlock->rw_reader_in_queue >= 0);
 	KASSERT(rwlock->rw_writer_in_held >= 0);
 	lock_acquire(rwlock->rw_lock);
-
-	kprintf_n("rwlock read acquire started!\n");
-
 	rwlock->rw_reader_in_queue++;//add the pending queue first
 	while(rwlock->rw_writer_in_held > 0||rwlock->rw_writer_in_queue > 0){
 		// pending process
@@ -459,9 +440,6 @@ void rwlock_acquire_read(struct rwlock *rwlock)
 	}
 	rwlock->rw_reader_in_held++;// passed the while loop,acquire succeed
 	rwlock->rw_reader_in_queue--;// out of pending queue
-
-	kprintf_n("rwlock read acquire finished!\n");
-
 	lock_release(rwlock->rw_lock);
 }
 
@@ -474,18 +452,14 @@ void rwlock_release_read(struct rwlock *rwlock)
 	KASSERT(rwlock->rw_writer_in_held >= 0);
 	//add
 	lock_acquire(rwlock->rw_lock);
-
-	kprintf_n("rwlock read release started!\n");
-
 	rwlock->rw_reader_in_held--;
-	if(rwlock->rw_writer_in_queue > 0 && rwlock->rw_reader_in_held==0){
+	//rwlock->rw_writer_in_queue > 0 &&
+	if( rwlock->rw_reader_in_held==0){
 		cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
-	}
-	else{
+	// }
+	// else{
 		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
 	}
-
-  kprintf_n("rwlock read release finished!\n");
 
 	lock_release(rwlock->rw_lock);
 }
@@ -498,9 +472,6 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 	KASSERT(rwlock->rw_reader_in_queue >= 0);
 	KASSERT(rwlock->rw_writer_in_held >= 0);
 	lock_acquire(rwlock->rw_lock);
-
-  	kprintf_n("rwlock write acquire started!\n");
-
 	rwlock->rw_writer_in_queue++; //add to pending queue
 	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 ){
 		  cv_wait(rwlock->rw_to_write,rwlock->rw_lock);
@@ -508,9 +479,6 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 	// rwlock->rw_reader_in_queue > 0
 	rwlock->rw_writer_in_queue--;//unqueue
 	rwlock->rw_writer_in_held++;//acquire section succed
-
- 	kprintf_n("rwlock write acquire finished!\n");
-
   lock_release(rwlock->rw_lock);
 }
 
@@ -522,19 +490,14 @@ void rwlock_release_write(struct rwlock *rwlock)
 	KASSERT(rwlock->rw_reader_in_queue >= 0);
 	KASSERT(rwlock->rw_writer_in_held >= 0);
 	lock_acquire(rwlock->rw_lock);
-
-	kprintf_n("rwlock write release started!\n");
-
 	rwlock->rw_writer_in_held--;
 	  // if still some writer in queue
-	if(rwlock->rw_reader_in_queue > 0){
+	// if(rwlock->rw_reader_in_queue > 0){
 		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
 		// signal for next writer
-	}else{
+	// }else{
 		cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
-	}
-
-	kprintf_n("rwlock write release finished!\n");
+	// }
 
 	lock_release(rwlock->rw_lock);
 }
