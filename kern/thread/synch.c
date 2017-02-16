@@ -496,7 +496,9 @@ void rwlock_release_write(struct rwlock *rwlock)
 		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
 		// signal for next writer
 	// }else{
-		//cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
+	if(rw_reader_in_queue==0){
+		cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
+	}
 	// }
 
 	lock_release(rwlock->rw_lock);
