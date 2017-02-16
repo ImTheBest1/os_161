@@ -418,7 +418,7 @@ void rwlock_destroy(struct rwlock *rwlock)
 	KASSERT(rwlock != NULL);
 	KASSERT(rwlock->rw_reader_in_held >= 0);
 	KASSERT(rwlock->rw_writer_in_queue >= 0);
-  	KASSERT(rwlock->rw_reader_in_queue >= 0);
+  KASSERT(rwlock->rw_reader_in_queue >= 0);
 	KASSERT(rwlock->rw_writer_in_held >= 0);
 	//check the rwlock is existing
 	//release all requesting resource
@@ -489,10 +489,6 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 
 void rwlock_release_write(struct rwlock *rwlock)
 {
-<<<<<<< HEAD
-=======
-	/*merge*/
->>>>>>> asst1
 	KASSERT(rwlock != NULL);
 	KASSERT(rwlock->rw_reader_in_held >= 0);
 	KASSERT(rwlock->rw_writer_in_queue >= 0);
