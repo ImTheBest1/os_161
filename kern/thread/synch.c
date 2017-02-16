@@ -457,8 +457,9 @@ void rwlock_release_read(struct rwlock *rwlock)
 	if( rwlock->rw_reader_in_held==0){
 	// }
 	// else{
+
+	  cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
 		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
-		cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
 	}
 
 	lock_release(rwlock->rw_lock);
@@ -493,12 +494,11 @@ void rwlock_release_write(struct rwlock *rwlock)
 	rwlock->rw_writer_in_held--;
 	  // if still some writer in queue
 	// if(rwlock->rw_reader_in_queue > 0){
+
+		cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
 		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
 		// signal for next writer
 	// }else{
-	if(rwlock->rw_reader_in_queue==0){
-		cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
-	}
 	// }
 
 	lock_release(rwlock->rw_lock);
