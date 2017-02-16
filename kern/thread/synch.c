@@ -434,7 +434,7 @@ void rwlock_acquire_read(struct rwlock *rwlock)
 	KASSERT(rwlock->rw_writer_in_held >= 0);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_queue++;//add the pending queue first
-	while(rwlock->rw_writer_in_held > 0||rwlock->rw_writer_in_queue > 0){
+	while(rwlock->rw_writer_in_held > 0){
 		// pending process
     cv_wait(rwlock->rw_to_read,rwlock->rw_lock);
 	}
@@ -454,11 +454,9 @@ void rwlock_release_read(struct rwlock *rwlock)
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_reader_in_held--;
 	//rwlock->rw_writer_in_queue > 0 &&
-	if( rwlock->rw_reader_in_held==0){
-	// }
-	// else{
-
+	if( rwlock->rw_reader_in_held==0&&rwlock->rw_writer_in_queue > 0){
 	  cv_broadcast(rwlock->rw_to_write,rwlock->rw_lock);
+	}else{
 		cv_broadcast(rwlock->rw_to_read,rwlock->rw_lock);
 	}
 
