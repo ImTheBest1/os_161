@@ -473,7 +473,8 @@ void rwlock_acquire_write(struct rwlock *rwlock)
 	KASSERT(rwlock->rw_writer_in_held >= 0);
 	lock_acquire(rwlock->rw_lock);
 	rwlock->rw_writer_in_queue++; //add to pending queue
-	while(rwlock->rw_writer_in_held > 0 || rwlock->rw_reader_in_held > 0 ){
+	while(rwlock->rw_writer_in_held > 0 ){
+		//   || rwlock->rw_reader_in_held > 0 
 		  cv_wait(rwlock->rw_to_write,rwlock->rw_lock);
 	}
 	// rwlock->rw_reader_in_queue > 0
