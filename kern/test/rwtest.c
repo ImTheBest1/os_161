@@ -2,6 +2,9 @@
  * All the contents of this file are overwritten during automated
  * testing. Please consider this before changing anything in this file.
  */
+ #define KERN_PTR	((void *)0x80000000)	/* addr within kernel */
+
+
 
 #include <types.h>
 #include <lib.h>
@@ -19,6 +22,8 @@
 int rwtest(int nargs, char **args) {
 	(void)nargs;
 	(void)args;
+
+	
 
 	kprintf_n("rwt1 unimplemented\n");
 	success(TEST161_FAIL, SECRET, "rwt1");
