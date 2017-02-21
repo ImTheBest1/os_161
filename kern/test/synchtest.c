@@ -313,7 +313,7 @@ locktest2(int nargs, char **args) {
 	kprintf_n("Starting lt2...\n");
 	kprintf_n("(This test panics on success!)\n");
 
-	testlock = lock_create("testlock22");
+	testlock = lock_create("testlock");
 	if (testlock == NULL) {
 		panic("lt2: lock_create failed\n");
 	}
@@ -322,8 +322,7 @@ locktest2(int nargs, char **args) {
 	lock_release(testlock);
 
 	/* Should not get here on success. */
-	
-	
+
 	success(TEST161_FAIL, SECRET, "lt2");
 
 	/* Don't do anything that could panic. */
