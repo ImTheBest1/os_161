@@ -154,7 +154,7 @@ void cv_broadcast(struct cv *cv, struct lock *lock);
  */
 
 struct rwlock {
-  char *rwlock_name;
+	char *rwlock_name;
   struct lock *rw_lock;
   struct cv *rw_to_read;
   struct cv *rw_to_write;
@@ -162,6 +162,7 @@ struct rwlock {
   volatile int rw_writer_in_queue;
   volatile int rw_reader_in_held;
   volatile int rw_writer_in_held;
+
 };
 
 struct rwlock * rwlock_create(const char *);

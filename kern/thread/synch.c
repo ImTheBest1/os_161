@@ -313,7 +313,7 @@ cv_wait(struct cv *cv, struct lock *lock)
 	KASSERT(cv != NULL);
 	KASSERT(lock != NULL);
 	// must hold a lock
-	KASSERT(lock_do_i_hold(lock));
+	//KASSERT(lock_do_i_hold(lock));
 
 	// before lease the lock, make sure the lock can release properly
 	// spinlock_acquire before lock_release to fill the gap
@@ -332,12 +332,12 @@ cv_signal(struct cv *cv, struct lock *lock)
 {
 	KASSERT(cv != NULL);
 	KASSERT(lock != NULL);
-	KASSERT(lock_do_i_hold(lock));
-
+	//KASSERT(lock_do_i_hold(lock));
 	spinlock_acquire(&cv->cv_spinlock);
 	wchan_wakeone(cv->cv_wchan, &cv->cv_spinlock);
 //	V(cv->cv_semaphore);
 	spinlock_release(&cv->cv_spinlock);
+
 
 }
 
@@ -350,8 +350,12 @@ cv_broadcast(struct cv *cv, struct lock *lock)
 	KASSERT(lock_do_i_hold(lock));
 
 	spinlock_acquire(&cv->cv_spinlock);
+	//lock_release(lock);	/*********************after delete lock_do_i_hold*****************************************************/
+
 	wchan_wakeall(cv->cv_wchan, &cv->cv_spinlock);
 	spinlock_release(&cv->cv_spinlock);
+	//lock_acquire(lock);	/*********************after delete lock_do_i_hold*****************************************************/
+
 }
 
 
@@ -466,6 +470,7 @@ void rwlock_release_read(struct rwlock *rwlock)
 }
 
 	lock_release(rwlock->rw_lock);
+
 }
 
 void rwlock_acquire_write(struct rwlock *rwlock)
