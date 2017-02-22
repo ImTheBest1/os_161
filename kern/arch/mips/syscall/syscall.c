@@ -100,19 +100,37 @@ syscall(struct trapframe *tf)
 	retval = 0;
 
 	switch (callno) {
-	    case SYS_reboot:
+	  case SYS_reboot:
 		err = sys_reboot(tf->tf_a0);
 		break;
 
-	    case SYS___time:
+	  case SYS___time:
 		err = sys___time((userptr_t)tf->tf_a0,
 				 (userptr_t)tf->tf_a1);
 		break;
 
 		case SYS_open:
+		kprintf(" Come to open %d\n", callno);
 		err = sys_open((userptr_t)tf->tf_a0,tf->tf_a1);
 		break;
 
+		case SYS_write:
+		kprintf(" Come to write %d\n", callno);
+		err = sys_write(tf->tf_a0,(void *)tf->tf_a1,tf->tf_a2);
+		if(err == EBADF || err == EFAULT){
+			retval = -1;
+		}
+		kprintf(" write end with retval %d \n", retval);
+		break;
+
+		case SYS_read:
+		kprintf(" Come to read %d\n", callno);
+		err = sys_read(tf->tf_a0,(void *)tf->tf_a1, tf->tf_a2);
+		break;
+
+		// case SYS__exit:
+		// err = sys__exit(tf->tf_a0);
+		// break;
 
 
 	    /* Add stuff here */

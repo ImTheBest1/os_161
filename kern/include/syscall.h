@@ -33,6 +33,13 @@
 
 #include <cdefs.h> /* for __DEAD */
 struct trapframe; /* from <machine/trapframe.h> */
+struct file{
+	 int flag;
+	 off_t offset;
+	 struct rwlock *file_lock;
+	 struct vnode *file_vn;
+};
+
 
 /*
  * The system call dispatcher.
@@ -59,5 +66,7 @@ __DEAD void enter_new_process(int argc, userptr_t argv, userptr_t env,
 int sys_reboot(int code);
 int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
 int sys_open(userptr_t user_filename, int flags);
+int sys_read(int fd, void *buf,size_t buflen);
+int sys_write(int fd, const void *buf, size_t buflen);
 
 #endif /* _SYSCALL_H_ */

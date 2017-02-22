@@ -153,7 +153,10 @@ thread_create(const char *name)
 	thread->t_iplhigh_count = 1; /* corresponding to t_curspl */
 
 	/* If you add to struct thread, be sure to initialize here */
-
+  for(int i = 0; i < FILE_SIZE;i++){
+		thread->filetable[i]= NULL;
+		// leave first three index for stdin, out, err
+	}
 	return thread;
 }
 
@@ -285,7 +288,19 @@ thread_destroy(struct thread *thread)
 
 	/* sheer paranoia */
 	thread->t_wchan_name = "DESTROYED";
+  for (int i=0; i < FILE_SIZE;i++){
+// 		if(thread->filetable[i] != NULL){
+// 	      if(thread->filetable[i]->file_lock){
+// 		       rwlock_destroy(thread->filetable[i]->file_lock);
+//         	}
+//       	if(thread->filetable[i]->file_vn){
+// 	       kfree(thread->filetable[i]->file_vn);
+//           }
+// }
+		kfree(thread->filetable[i]);
 
+		// if struct file modified, please add some thing here
+	}
 	kfree(thread);
 }
 
