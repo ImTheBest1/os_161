@@ -11,50 +11,73 @@
 #include <uio.h>
 #include <kern/fcntl.h>
 #include <vnode.h>
+#include <proc.h>
 
-int sys_open(userptr_t user_filename, int flags){
+int sys_open(userptr_t user_filename, int flags, mode_t mode){
 	(void) user_filename;
 	(void) flags;
-  size_t size;
+	(void) mode;
+
+	char *filename = (char*) user_filename;
 	struct vnode *vn;
-	char *filename;
+
+ //  	size_t size;
+	// struct vnode *vn;
+
+	// copy user_filename to filename
+
+
 	bool empty = false;
-  int counter = 3 ;
+  	int index = 3 ; // 0,1,2 for reserve spot
 	int open_code;
-	filename = (char *)kmalloc(sizeof(char)*PATH_MAX);
-	copyinstr(user_filename,filename,PATH_MAX, &size);
+	// filename = (char *)kmalloc(sizeof(char)*PATH_MAX);
+	// copyinstr(user_filename,filename,PATH_MAX, &size);
+	copyin((const_userptr_t)user_filename,filename,sizeof(filename));
+
 	if(user_filename == NULL){
 		// no such file, non arg
 		return  EFAULT;
+		empty = true;
 	}
-	while(!empty || counter < FILE_SIZE){
-		if(curthread->filetable[counter] == NULL){
+
+	// check if file table is available for later file_descriptor pointer to file objector, save spot for open
+	while(!empty || index < FILE_SIZE){
+		if(curproc->filetable[index] == NULL){
 			empty = true;
+			// as long as it is empty, break;
+			break;
 		}
-		counter++;
+		index++;
 	}
-	if (!empty && counter == FILE_SIZE){
+
+	if (!empty && index == FILE_SIZE){
 		// file table is full
 		return ENFILE;
 	}
-	open_code = vfs_open(filename,flags,0,&vn);
+	// vfs_open(char *path, int openflags, mode_t mode, struct vnode **ret);
+	// open_code = vfs_open(filename,flags,0,&vn);
+	open_code = vfs_open(filename,flags,mode,&vn);
 	if(open_code){
 		return open_code;
 	}
-	curthread->filetable[counter]->file_vn = vn;
-	curthread->filetable[counter]->flag = flags;
-	curthread->filetable[counter]->offset = 0;
-	curthread->filetable[counter]->file_lock = rwlock_create(filename);
-	kfree(filename);
-	return counter;
+	curproc->filetable[index]->file_vn = vn;
+	curproc->filetable[index]->flag = flags;
+	curproc->filetable[index]->offset = 0;
+	curproc->filetable[index]->file_lock = rwlock_create(filename);
+	// kfree(filename);
+
+	return index;
 }
+
+
 int sys_read(int fd, void *buf,size_t buflen){
 	(void) fd;
 	(void) buf;
 	(void) buflen;
 	return 0;
 }
-int sys_write(int fd, const void *buf, size_t buflen){
+
+ssize_t sys_write(int fd, const void *buf, size_t buflen){
 	(void) fd;
 	(void) buf;
 	(void) buflen;
@@ -62,17 +85,17 @@ int sys_write(int fd, const void *buf, size_t buflen){
 	if(fd < 0 || fd > FILE_SIZE){
 		return EBADF;
 	}
-	if(curthread->filetable[fd] == NULL){
+	if(curproc->filetable[fd] == NULL){
 		// not exist
 		return EBADF;
 	}
-	if(curthread->filetable[fd]->flag != O_RDWR ||curthread->filetable[fd]->flag != O_WRONLY){
+	if(curproc->filetable[fd]->flag != O_RDWR ||curproc->filetable[fd]->flag != O_WRONLY){
 		return EBADF;
 	}
 	//check the address of buf pointer
 
-	rwlock_acquire_write(curthread->filetable[fd]->file_lock);
-  struct uio writer;
+	rwlock_acquire_write(curproc->filetable[fd]->file_lock);
+  	struct uio writer;
 	struct iovec vec;
 	size_t size;
 	char *bufferName = (char *) kmalloc(buflen);
@@ -80,16 +103,16 @@ int sys_write(int fd, const void *buf, size_t buflen){
 	if(bufferName == NULL){
 		return EFAULT;
 	}
-	uio_kinit(&vec,&writer,(void *)bufferName,buflen,curthread->filetable[fd]->offset,UIO_WRITE);
+	uio_kinit(&vec,&writer,(void *)bufferName,buflen,curproc->filetable[fd]->offset,UIO_WRITE);
 	int write_code;
-	write_code = VOP_WRITE(curthread->filetable[fd]->file_vn,&writer);
+	write_code = VOP_WRITE(curproc->filetable[fd]->file_vn,&writer);
 	if(write_code){
 		kfree(bufferName);
-		rwlock_release_write(curthread->filetable[fd]->file_lock);
+		rwlock_release_write(curproc->filetable[fd]->file_lock);
 		return write_code;
 	}
-	curthread->filetable[fd]->offset = writer.uio_offset;
-  rwlock_release_write(curthread->filetable[fd]->file_lock);
+	curproc->filetable[fd]->offset = writer.uio_offset;
+  rwlock_release_write(curproc->filetable[fd]->file_lock);
 	int sig = buflen - writer.uio_resid;
 	return sig;
 }

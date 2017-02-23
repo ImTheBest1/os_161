@@ -50,7 +50,6 @@ struct cpu;
 #define STACK_SIZE 4096
 #define MAX_NAME_LENGTH 64
 
-#define FILE_SIZE 30 //MAX NUMBER OF FILE THAT ONE FILETABLE HAVE
 
 /* Mask for extracting the stack base address of a kernel stack pointer */
 #define STACK_MASK  (~(vaddr_t)(STACK_SIZE-1))
@@ -117,7 +116,7 @@ struct thread {
 	/*
 	 * Public fields
 	 */
-  struct file *filetable[FILE_SIZE];
+
 	/* add more here as needed */
 };
 

@@ -33,7 +33,7 @@
 
 #include <cdefs.h> /* for __DEAD */
 struct trapframe; /* from <machine/trapframe.h> */
-struct file{
+struct file_handler{
 	 int flag;
 	 off_t offset;
 	 struct rwlock *file_lock;
@@ -65,7 +65,7 @@ __DEAD void enter_new_process(int argc, userptr_t argv, userptr_t env,
 
 int sys_reboot(int code);
 int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
-int sys_open(userptr_t user_filename, int flags);
+int sys_open(userptr_t user_filename, int flags, mode_t mode);
 int sys_read(int fd, void *buf,size_t buflen);
 int sys_write(int fd, const void *buf, size_t buflen);
 

@@ -82,6 +82,10 @@ proc_create(const char *name)
 	/* VFS fields */
 	proc->p_cwd = NULL;
 
+	for(int i = 0; i < FILE_SIZE;i++){
+  		proc->filetable[i] = NULL;
+  	}
+
 	return proc;
 }
 
@@ -169,6 +173,10 @@ proc_destroy(struct proc *proc)
 	spinlock_cleanup(&proc->p_lock);
 
 	kfree(proc->p_name);
+	for (int i=0; i < FILE_SIZE;i++){
+  		kfree(proc->filetable[i]);
+  	}
+
 	kfree(proc);
 }
 

@@ -111,16 +111,17 @@ syscall(struct trapframe *tf)
 
 		case SYS_open:
 		kprintf(" Come to open %d\n", callno);
-		err = sys_open((userptr_t)tf->tf_a0,tf->tf_a1);
+		err = sys_open((userptr_t)tf->tf_a0,tf->tf_a1, tf->tf_a2);
+		kprintf("---------------------end open, return int_open %d\n", err);
 		break;
 
 		case SYS_write:
-		kprintf(" Come to write %d\n", callno);
+		// kprintf(" Come to write %d\n", callno);
 		err = sys_write(tf->tf_a0,(void *)tf->tf_a1,tf->tf_a2);
 		if(err == EBADF || err == EFAULT){
 			retval = -1;
 		}
-		kprintf(" write end with retval %d \n", retval);
+		// kprintf(" write end with retval %d \n", retval);
 		break;
 
 		case SYS_read:
