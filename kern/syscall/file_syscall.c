@@ -12,6 +12,7 @@
 #include <kern/fcntl.h>
 #include <vnode.h>
 #include <proc.h>
+#include <kern/errno.h>
 
 int sys_open(userptr_t user_filename, int flags, mode_t mode){
 	(void) user_filename;
@@ -49,7 +50,6 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode){
 		}
 		index++;
 	}
-
 	if (!empty && index == FILE_SIZE){
 		// file table is full
 		return ENFILE;
@@ -82,35 +82,45 @@ ssize_t sys_write(int fd, const void *buf, size_t buflen){
 	(void) buf;
 	(void) buflen;
 	// check wheter the fd is Invalid
+	if(0 <= fd && fd <= 2){
+		int init_file;
+		init_file = file_handler_init(curproc,fd);
+		if(init_file != 0 ){
+				kprintf("file system init failed!\n");
+		}
+	}
+	//	kprintf("check_1\n");
 	if(fd < 0 || fd > FILE_SIZE){
+		kprintf("our of range\n");
 		return EBADF;
 	}
 	if(curproc->filetable[fd] == NULL){
 		// not exist
+		kprintf("not exist\n");
 		return EBADF;
 	}
-	if(curproc->filetable[fd]->flag != O_RDWR ||curproc->filetable[fd]->flag != O_WRONLY){
+	if(curproc->filetable[fd]->flag != O_RDWR && curproc->filetable[fd]->flag != O_WRONLY){
+		kprintf("wrong flag! no %d\n",(int)curproc->filetable[fd]->flag);
 		return EBADF;
 	}
+		//kprintf("check_2\n");
 	//check the address of buf pointer
-
 	rwlock_acquire_write(curproc->filetable[fd]->file_lock);
-  	struct uio writer;
+  struct uio writer;
 	struct iovec vec;
-	size_t size;
-	char *bufferName = (char *) kmalloc(buflen);
-	copyinstr((userptr_t)buf,bufferName,strlen(bufferName), &size);
-	if(bufferName == NULL){
+	//size_t size;
+	int adr_check;
+  char * bufferName = (char *) kmalloc(buflen);
+	adr_check = copyin((const_userptr_t)buf,bufferName,strlen(bufferName));
+//	kprintf("adr_check %d\n",adr_check);
+	if(adr_check == 0){
+		rwlock_release_write(curproc->filetable[fd]->file_lock);
 		return EFAULT;
 	}
-	uio_kinit(&vec,&writer,(void *)bufferName,buflen,curproc->filetable[fd]->offset,UIO_WRITE);
-	int write_code;
-	write_code = VOP_WRITE(curproc->filetable[fd]->file_vn,&writer);
-	if(write_code){
-		kfree(bufferName);
-		rwlock_release_write(curproc->filetable[fd]->file_lock);
-		return write_code;
-	}
+	//kprintf("%s\n",(char *)buf);
+	//bufferName[buflen+1] = '\0';
+	uio_kinit(&vec,&writer,bufferName,buflen,curproc->filetable[fd]->offset,UIO_WRITE);
+  VOP_WRITE(curproc->filetable[fd]->file_vn,&writer);
 	curproc->filetable[fd]->offset = writer.uio_offset;
   rwlock_release_write(curproc->filetable[fd]->file_lock);
 	int sig = buflen - writer.uio_resid;

@@ -121,7 +121,7 @@ syscall(struct trapframe *tf)
 		if(err == EBADF || err == EFAULT){
 			retval = -1;
 		}
-		// kprintf(" write end with retval %d \n", retval);
+	//	kprintf(" write end with retval %d \n", retval);
 		break;
 
 		case SYS_read:

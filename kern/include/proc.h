@@ -75,6 +75,9 @@ struct proc {
 	/* add more material here as needed */
 	struct file_handler *filetable[FILE_SIZE];
 };
+/*This is the stdin,stdout,stderr initiate function*/
+
+int file_handler_init(struct proc *cur_proc, int fd);
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
