@@ -87,7 +87,11 @@ proc_create(const char *name)
 	proc->p_cwd = NULL;
 
 	for(int i = 0; i < FILE_SIZE;i++){
-  		proc->filetable[i] = NULL;
+		 proc->filetable[i] = NULL;
+
+  // 		proc->filetable[i]->flag = 0;
+		// proc->filetable[i]->offset = 0;
+		// proc->filetable[i]->file_vn = NULL;
   	}
 
 	return proc;
@@ -95,67 +99,59 @@ proc_create(const char *name)
 
 // -------DEAD---------------------
 // have the issue that make system stop working
-int file_handler_init(struct proc *cur_proc, int fd){
-    char openName[] = "con:";
-		struct file_handler *temp;
-		if(cur_proc->filetable[0] == NULL && fd == 0){
-		int sig;
-		struct vnode *vn_1;
-		(void ) vn_1;
-	  cur_proc->filetable[0] = (struct file_handler *)kmalloc(sizeof(struct file_handler));
-    sig = vfs_open(openName,O_RDONLY,0664,&vn_1); // or mode_t = 0
+void file_handler_std_init(struct proc *cur_proc){
+	char deceive_console[] = "con:";
 
-	 if(sig){
-		  kprintf("first file table initialization failed\n");
-						// kfree(openName);
-			return -1;
-	 }
-	 cur_proc->filetable[0]->file_vn = vn_1;
-	 cur_proc->filetable[0]->flag = O_RDONLY;
-	 cur_proc->filetable[0]->offset = 0;
-	 cur_proc->filetable[0]->file_lock = rwlock_create(openName);
-  }
+	int sig;
+	struct vnode *vn_1 = NULL;
+	struct vnode *vn_2 = NULL;
+	int sig_1;
+	struct vnode *vn_3 = NULL;
+	int sig_2;
 
 
-	// for second fd
-	if(cur_proc->filetable[1] == NULL && fd == 1){
-	 struct vnode *vn_2;
-	 int sig_1;
-	 cur_proc->filetable[1] = (struct file_handler *)kmalloc(sizeof(*temp));
-	 sig_1 =  vfs_open(openName,O_WRONLY,0664,&vn_2); // or mode_t = 0
-	 if(sig_1){
-			kprintf("second file table initialization failed%d\n",sig_1);
-						// kfree(openName);
-			return -1;
-	 }
-	 cur_proc->filetable[1] ->file_vn = vn_2;
-	 cur_proc->filetable[1] ->flag = O_WRONLY;
-	 cur_proc->filetable[1] ->offset = 0;
-	 cur_proc->filetable[1] ->file_lock = rwlock_create(openName);
+	for(int i = 0; i < 64;i++){
+		cur_proc->filetable[i] = kmalloc(sizeof(struct file_handler));
+		switch(i){
 
- }
+		case 0:
+		cur_proc->filetable[0] = kmalloc(sizeof(struct file_handler));
+    	sig = vfs_open(deceive_console,O_RDONLY,0,&vn_1); // or mode_t = 0
+		(void) sig;
+	 	cur_proc->filetable[0]->file_vn = vn_1;
+	 	cur_proc->filetable[0]->flag = O_RDONLY;
+	 	cur_proc->filetable[0]->offset = 0;
 
+		break;
 
+		case 1:
+   	 	cur_proc->filetable[1] = kmalloc(sizeof(struct file_handler));
+   	 	sig_1 =  vfs_open(deceive_console,O_WRONLY,0,&vn_2); // or mode_t = 0
+   	 	(void) sig_1;
+
+   	 	cur_proc->filetable[1] ->file_vn = vn_2;
+   	 	cur_proc->filetable[1] ->flag = O_WRONLY;
+   	 	cur_proc->filetable[1] ->offset = 0;
+
+		break;
+		case 2:
+
+	   cur_proc->filetable[2] = (struct file_handler *)kmalloc(sizeof(struct file_handler));
+		sig_2 =  vfs_open(deceive_console,O_WRONLY,0,&vn_3); // or mode_t = 0
+		(void) sig_2;
+
+		cur_proc->filetable[2] ->file_vn = vn_3;
+		cur_proc->filetable[2] ->flag = (int)O_WRONLY;
+		cur_proc->filetable[2] ->offset = 0;
+
+		break;
+		default:
+  		cur_proc->filetable[i]->flag = 0;
+		cur_proc->filetable[i]->offset = 0;
+		cur_proc->filetable[i]->file_vn = NULL;
+	}
+}
 	 // for third fd
-   if (cur_proc->filetable[2] == NULL && fd == 2){
-	 struct vnode *vn_3;
-	 int sig_2;
-	 cur_proc->filetable[2] = (struct file_handler *)kmalloc(sizeof(struct file_handler));
-	 sig_2 =  vfs_open(openName,O_WRONLY,0664,&vn_3); // or mode_t = 0
-	 if(sig_2){
-			kprintf("third file table initialization failed\n");
-			// kfree(openName);
-			return -1;
-	 }
-	 cur_proc->filetable[2] ->file_vn = vn_3;
-	 cur_proc->filetable[2] ->flag = (int)O_WRONLY;
-	 cur_proc->filetable[2] ->offset = 0;
-	 cur_proc->filetable[2] ->file_lock = rwlock_create(openName);
-
-   }
-
-	 return 0;
-
 
 
 }
@@ -247,7 +243,6 @@ proc_destroy(struct proc *proc)
 	for (int i=0; i < FILE_SIZE;i++){
 		if(proc->filetable[i] != NULL){
 			 kfree(proc->filetable[i]->file_vn);
-			 rwlock_destroy(proc->filetable[i]->file_lock);
 		}
   		kfree(proc->filetable[i]);
   	}
@@ -288,6 +283,8 @@ proc_create_runprogram(const char *name)
 
 	/* VFS fields */
 
+
+
 	/*
 	 * Lock the current process to copy its current directory.
 	 * (We don't need to lock the new process, though, as we have
@@ -300,6 +297,7 @@ proc_create_runprogram(const char *name)
 	}
 	spinlock_release(&curproc->p_lock);
 
+	file_handler_std_init(newproc);
 	return newproc;
 }
 

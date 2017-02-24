@@ -33,10 +33,10 @@
 
 #include <cdefs.h> /* for __DEAD */
 struct trapframe; /* from <machine/trapframe.h> */
+
 struct file_handler{
 	 int flag;
 	 off_t offset;
-	 struct rwlock *file_lock;
 	 struct vnode *file_vn;
 };
 

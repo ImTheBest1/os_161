@@ -117,10 +117,7 @@ syscall(struct trapframe *tf)
 
 		case SYS_write:
 		// kprintf(" Come to write %d\n", callno);
-		err = sys_write(tf->tf_a0,(void *)tf->tf_a1,tf->tf_a2);
-		if(err == EBADF || err == EFAULT){
-			retval = -1;
-		}
+		err = sys_write((int)tf->tf_a0,(const_userptr_t)tf->tf_a1,(int)tf->tf_a2);
 	//	kprintf(" write end with retval %d \n", retval);
 		break;
 

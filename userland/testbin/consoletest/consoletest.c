@@ -45,6 +45,14 @@
 #include <err.h>
 #include <test161/test161.h>
 
+
+
+
+
+
+
+
+
 // 23 Mar 2012 : GWA : BUFFER_COUNT must be even.
 
 #define STDOUT 1
@@ -84,6 +92,8 @@ main(int argc, char **argv)
 	init_random();
 
 	len = snsecprintf(BUFFER_SIZE, buffer, SECRET, "Able was i ere i saw elbA", "/testbin/consoletest");
+	printf(" ----------------------------------------len= %d\n", len);
+
 
 	how_many = (random() % 20) + 5;
 
@@ -97,6 +107,7 @@ main(int argc, char **argv)
 	}
 
 	// Insert a '\0' somewhere in the secured string to thwart kprintf attack.
+	len = 0;
 	how_many = (random() % (len - 10)) + 5;
 	for (i = BUFFER_SIZE-1; i > how_many; i--) {
 		buffer[i] = buffer[i-1];

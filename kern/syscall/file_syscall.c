@@ -21,13 +21,6 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode){
 
 	char *filename = (char*) user_filename;
 	struct vnode *vn;
-
- //  	size_t size;
-	// struct vnode *vn;
-
-	// copy user_filename to filename
-
-
 	bool empty = false;
   	int index = 3 ; // 0,1,2 for reserve spot
 	int open_code;
@@ -63,7 +56,6 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode){
 	curproc->filetable[index]->file_vn = vn;
 	curproc->filetable[index]->flag = flags;
 	curproc->filetable[index]->offset = 0;
-	curproc->filetable[index]->file_lock = rwlock_create(filename);
 	// kfree(filename);
 
 	return index;
@@ -77,52 +69,70 @@ int sys_read(int fd, void *buf,size_t buflen){
 	return 0;
 }
 
-ssize_t sys_write(int fd, const void *buf, size_t buflen){
-	(void) fd;
-	(void) buf;
-	(void) buflen;
+int sys_write(int fd, const void *buf, size_t buflen){
+	//KASSERT(curproc->filetable[fd]->file_vn != NULL);
+
+	char path[] = "con:";
+	int open_code = 0;
+	if(curproc->filetable[fd]->file_vn == NULL){
+		open_code = vfs_open(path, O_RDONLY, 0, &(curproc->filetable[fd]->file_vn));
+	}
+	if(open_code){
+		return open_code;
+	}
+	(void) open_code;
+
+
 	// check wheter the fd is Invalid
-	if(0 <= fd && fd <= 2){
-		int init_file;
-		init_file = file_handler_init(curproc,fd);
-		if(init_file != 0 ){
-				kprintf("file system init failed!\n");
-		}
-	}
 	//	kprintf("check_1\n");
-	if(fd < 0 || fd > FILE_SIZE){
-		kprintf("our of range\n");
-		return EBADF;
-	}
-	if(curproc->filetable[fd] == NULL){
-		// not exist
-		kprintf("not exist\n");
-		return EBADF;
-	}
-	if(curproc->filetable[fd]->flag != O_RDWR && curproc->filetable[fd]->flag != O_WRONLY){
-		kprintf("wrong flag! no %d\n",(int)curproc->filetable[fd]->flag);
-		return EBADF;
-	}
+
+	// if(fd < 0 || fd > 2){
+	// 	kprintf("our of range\n");
+	// 	return EBADF;
+	// }
+	//
+	// if(curproc->filetable[fd]->flag != O_RDWR && curproc->filetable[fd]->flag != O_WRONLY){
+	// 	kprintf("wrong flag! no %d\n",(int)curproc->filetable[fd]->flag);
+	// 	return EBADF;
+	// }
+
 		//kprintf("check_2\n");
 	//check the address of buf pointer
-	rwlock_acquire_write(curproc->filetable[fd]->file_lock);
-  struct uio writer;
-	struct iovec vec;
-	//size_t size;
 	int adr_check;
-  char * bufferName = (char *) kmalloc(buflen);
+  	char *bufferName = kmalloc(buflen);
 	adr_check = copyin((const_userptr_t)buf,bufferName,strlen(bufferName));
+
+
+
+
 //	kprintf("adr_check %d\n",adr_check);
-	if(adr_check == 0){
-		rwlock_release_write(curproc->filetable[fd]->file_lock);
+	if(adr_check){
 		return EFAULT;
 	}
 	//kprintf("%s\n",(char *)buf);
 	//bufferName[buflen+1] = '\0';
-	uio_kinit(&vec,&writer,bufferName,buflen,curproc->filetable[fd]->offset,UIO_WRITE);
-  VOP_WRITE(curproc->filetable[fd]->file_vn,&writer);
-	curproc->filetable[fd]->offset = writer.uio_offset;
-  rwlock_release_write(curproc->filetable[fd]->file_lock);
-	int sig = buflen - writer.uio_resid;
-	return sig;
+
+	/*
+	 * Initialize a uio suitable for I/O from a kernel buffer.
+	 *
+	 * Usage example;
+	 * 	char buf[128];
+	 * 	struct iovec iov;
+	 * 	struct uio myuio;
+	 *
+	 * 	uio_kinit(&iov, &myuio, buf, sizeof(buf), 0, UIO_READ);
+	 *      result = VOP_READ(vn, &myuio);
+	 *      ...
+	 */
+	// void uio_kinit(struct iovec *, struct uio *,
+	// 	       void *kbuf, size_t len, off_t pos, enum uio_rw rw);
+
+	struct iovec iov;
+	struct uio myuio;
+	uio_kinit(&iov, &myuio, bufferName, strlen(bufferName), curproc->filetable[fd]->offset, UIO_WRITE);
+	// int (*vop_write)(struct vnode *file, struct uio *uio);
+	adr_check = VOP_WRITE(curproc->filetable[fd]->file_vn, &myuio);
+
+
+	return adr_check;
 }

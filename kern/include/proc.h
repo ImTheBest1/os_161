@@ -73,11 +73,11 @@ struct proc {
 	struct vnode *p_cwd;		/* current working directory */
 
 	/* add more material here as needed */
-	struct file_handler *filetable[FILE_SIZE];
+	struct file_handler *filetable[64];
 };
 /*This is the stdin,stdout,stderr initiate function*/
 
-int file_handler_init(struct proc *cur_proc, int fd);
+void file_handler_std_init(struct proc *cur_proc);
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
