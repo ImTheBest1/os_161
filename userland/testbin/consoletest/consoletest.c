@@ -92,7 +92,6 @@ main(int argc, char **argv)
 	init_random();
 
 	len = snsecprintf(BUFFER_SIZE, buffer, SECRET, "Able was i ere i saw elbA", "/testbin/consoletest");
-	printf(" ----------------------------------------len= %d\n", len);
 
 
 	how_many = (random() % 20) + 5;
@@ -107,14 +106,12 @@ main(int argc, char **argv)
 	}
 
 	// Insert a '\0' somewhere in the secured string to thwart kprintf attack.
-	len = 0;
 	how_many = (random() % (len - 10)) + 5;
 	for (i = BUFFER_SIZE-1; i > how_many; i--) {
 		buffer[i] = buffer[i-1];
 	}
 	buffer[how_many] = '\0';
 	++len;
-
 	write(1, buffer, len);
 	write(1, "\n", 1);
 

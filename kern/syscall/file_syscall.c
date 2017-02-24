@@ -99,8 +99,9 @@ int sys_write(int fd, const void *buf, size_t buflen){
 		//kprintf("check_2\n");
 	//check the address of buf pointer
 	int adr_check;
-  	char *bufferName = kmalloc(buflen);
-	adr_check = copyin((const_userptr_t)buf,bufferName,strlen(bufferName));
+  void *bufferName;
+	bufferName = kmalloc(sizeof(*buf)*buflen);
+	adr_check = copyin((const_userptr_t)buf,bufferName,buflen);
 
 
 
@@ -129,10 +130,9 @@ int sys_write(int fd, const void *buf, size_t buflen){
 
 	struct iovec iov;
 	struct uio myuio;
-	uio_kinit(&iov, &myuio, bufferName, strlen(bufferName), curproc->filetable[fd]->offset, UIO_WRITE);
+	uio_kinit(&iov, &myuio, bufferName, buflen, curproc->filetable[fd]->offset, UIO_WRITE);
 	// int (*vop_write)(struct vnode *file, struct uio *uio);
 	adr_check = VOP_WRITE(curproc->filetable[fd]->file_vn, &myuio);
-
 
 	return adr_check;
 }
