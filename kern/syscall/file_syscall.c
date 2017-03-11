@@ -15,25 +15,27 @@
 #include <kern/errno.h>
 
 int sys_open(userptr_t user_filename, int flags, mode_t mode){
+	//kprintf("hi\n");
 	(void) user_filename;
 	(void) flags;
 	(void) mode;
-
-	char *filename = (char*) user_filename;
+	char *filename;
+	// char *filename = (char*) user_filename
+	struct file_handler *file;
 	struct vnode *vn;
 	bool empty = false;
-  	int index = 3 ; // 0,1,2 for reserve spot
-	int open_code;
-	// filename = (char *)kmalloc(sizeof(char)*PATH_MAX);
+  int index = 3 ; // 0,1,2 for reserve spot
+  int open_code;
+	file = kmalloc(sizeof(struct file_handler));
+	filename = (char *)kmalloc(sizeof(char)*PATH_MAX);
 	// copyinstr(user_filename,filename,PATH_MAX, &size);
 	copyin((const_userptr_t)user_filename,filename,sizeof(filename));
-
 	if(user_filename == NULL){
 		// no such file, non arg
+		//kprintf("user_filename == NULL\n");
 		return  EFAULT;
 		empty = true;
 	}
-
 	// check if file table is available for later file_descriptor pointer to file objector, save spot for open
 	while(!empty || index < FILE_SIZE){
 		if(curproc->filetable[index] == NULL){
@@ -53,12 +55,15 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode){
 	if(open_code){
 		return open_code;
 	}
-	curproc->filetable[index]->file_vn = vn;
-	curproc->filetable[index]->flag = flags;
-	curproc->filetable[index]->offset = 0;
-	// kfree(filename);
-
-	return index;
+	file->offset = 0;
+	file->file_vn = vn;
+	file->flag = flags;
+	// curproc->filetable[index]->file_vn = vn;
+	// curproc->filetable[index]->flag = flags;
+	// curproc->filetable[index]->offset = 0;
+	curproc->filetable[index]= file;
+	kfree(filename);
+	return 0;
 }
 
 
