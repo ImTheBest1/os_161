@@ -35,6 +35,9 @@
 #include <thread.h>
 #include <current.h>
 #include <syscall.h>
+#include <file_syscall.h>
+#include <copyinout.h>
+
 
 
 /*
@@ -80,6 +83,10 @@ syscall(struct trapframe *tf)
 {
 	int callno;
 	int32_t retval;
+	int32_t retval_1;
+	int64_t _64bits;
+	(void) _64bits;
+	int whence;
 	int err;
 
 	KASSERT(curthread != NULL);
@@ -100,38 +107,56 @@ syscall(struct trapframe *tf)
 	retval = 0;
 
 	switch (callno) {
-	  case SYS_reboot:
+	    case SYS_reboot:
 		err = sys_reboot(tf->tf_a0);
 		break;
 
-	  case SYS___time:
+	    case SYS___time:
 		err = sys___time((userptr_t)tf->tf_a0,
 				 (userptr_t)tf->tf_a1);
 		break;
 
+	    /* Add stuff here */
 		case SYS_open:
-		err = sys_open((userptr_t)tf->tf_a0,tf->tf_a1, tf->tf_a2);
+	//	kprintf("********************************SYS_open call*********************************\n");
+
+		err = sys_open((userptr_t)tf->tf_a0, (int)tf->tf_a1, (mode_t)tf->tf_a2, &retval);
+
+	//	kprintf("********************************end SYS_open call*********************************\n");
+		break;
+
+		case SYS_read:
+		err = sys_read(tf->tf_a0, (userptr_t)tf->tf_a1,tf->tf_a2,&retval);
+		break;
+
+		case SYS_close:
+		err = sys_close((int)tf->tf_a0);
+		if(!err){
+			retval = 0;
+		}
 		break;
 
 		case SYS_write:
 		// kprintf(" Come to write %d\n", callno);
-		err = sys_write((int)tf->tf_a0,(const_userptr_t)tf->tf_a1,(int)tf->tf_a2);
+		err = sys_write((int)tf->tf_a0,(const_userptr_t)tf->tf_a1,(int)tf->tf_a2,&retval);
 	//	kprintf(" write end with retval %d \n", retval);
 		break;
 
-		case SYS_read:
-		kprintf(" Come to read %d\n", callno);
-		err = sys_read(tf->tf_a0,(void *)tf->tf_a1, tf->tf_a2);
+		case SYS_lseek:
+		_64bits = tf->tf_a2;
+		_64bits <<= 32;	// left shift 32bits
+		_64bits |= tf->tf_a3; // take tf_a3
+
+		// copyin(const_userptr_t usersrc, void *dest, size_t len)
+		copyin((const_userptr_t)(tf->tf_sp + 16), &whence, (int)sizeof(whence));
+		//err = sys_lseek((int)tf->tf_a0, (off_t)_64bits,(int)tf->tf_a3);
+		err = sys_lseek((int)tf->tf_a0, (off_t)_64bits,whence,&retval,&retval_1);
+		if(err == 0){
+			tf->tf_v1 = retval_1;
+		}
 		break;
 
-		// case SYS__exit:
-		// err = sys__exit(tf->tf_a0);
-		// break;
-
-
-	    /* Add stuff here */
-
-	    default:
+	  default:
 		kprintf("Unknown syscall %d\n", callno);
 		err = ENOSYS;
 		break;

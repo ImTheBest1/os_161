@@ -86,12 +86,8 @@ proc_create(const char *name)
 	/* VFS fields */
 	proc->p_cwd = NULL;
 
-	for(int i = 0; i < FILE_SIZE;i++){
+	for(int i = 0; i < 64;i++){
 		 proc->filetable[i] = NULL;
-
-  // 		proc->filetable[i]->flag = 0;
-		// proc->filetable[i]->offset = 0;
-		// proc->filetable[i]->file_vn = NULL;
   	}
 
 	return proc;
@@ -110,11 +106,7 @@ void file_handler_std_init(struct proc *cur_proc){
 	int sig_2;
 
 
-	for(int i = 0; i < 64;i++){
-		cur_proc->filetable[i] = kmalloc(sizeof(struct file_handler));
-		switch(i){
 
-		case 0:
 		cur_proc->filetable[0] = kmalloc(sizeof(struct file_handler));
     	sig = vfs_open(deceive_console,O_RDONLY,0,&vn_1); // or mode_t = 0
 		(void) sig;
@@ -122,10 +114,7 @@ void file_handler_std_init(struct proc *cur_proc){
 	 	cur_proc->filetable[0]->flag = O_RDONLY;
 	 	cur_proc->filetable[0]->offset = 0;
 
-		break;
-
-		case 1:
-   	 	cur_proc->filetable[1] = kmalloc(sizeof(struct file_handler));
+		cur_proc->filetable[1] = kmalloc(sizeof(struct file_handler));
    	 	sig_1 =  vfs_open(deceive_console,O_WRONLY,0,&vn_2); // or mode_t = 0
    	 	(void) sig_1;
 
@@ -133,25 +122,13 @@ void file_handler_std_init(struct proc *cur_proc){
    	 	cur_proc->filetable[1] ->flag = O_WRONLY;
    	 	cur_proc->filetable[1] ->offset = 0;
 
-		break;
-		case 2:
-
-	   cur_proc->filetable[2] = (struct file_handler *)kmalloc(sizeof(struct file_handler));
+		cur_proc->filetable[2] = kmalloc(sizeof(struct file_handler));
 		sig_2 =  vfs_open(deceive_console,O_WRONLY,0,&vn_3); // or mode_t = 0
 		(void) sig_2;
 
 		cur_proc->filetable[2] ->file_vn = vn_3;
 		cur_proc->filetable[2] ->flag = (int)O_WRONLY;
 		cur_proc->filetable[2] ->offset = 0;
-
-		break;
-		default:
-  		cur_proc->filetable[i]->flag = 0;
-		cur_proc->filetable[i]->offset = 0;
-		cur_proc->filetable[i]->file_vn = NULL;
-	}
-}
-	 // for third fd
 
 
 }

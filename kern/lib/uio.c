@@ -48,6 +48,7 @@ uiomove(void *ptr, size_t n, struct uio *uio)
 	if (uio->uio_rw != UIO_READ && uio->uio_rw != UIO_WRITE) {
 		panic("uiomove: Invalid uio_rw %d\n", (int) uio->uio_rw);
 	}
+
 	if (uio->uio_segflg==UIO_SYSSPACE) {
 		KASSERT(uio->uio_space == NULL);
 	}

@@ -50,7 +50,6 @@ struct cpu;
 #define STACK_SIZE 4096
 #define MAX_NAME_LENGTH 64
 
-
 /* Mask for extracting the stack base address of a kernel stack pointer */
 #define STACK_MASK  (~(vaddr_t)(STACK_SIZE-1))
 

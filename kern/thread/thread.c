@@ -153,6 +153,7 @@ thread_create(const char *name)
 	thread->t_iplhigh_count = 1; /* corresponding to t_curspl */
 
 	/* If you add to struct thread, be sure to initialize here */
+
 	return thread;
 }
 
@@ -284,7 +285,7 @@ thread_destroy(struct thread *thread)
 
 	/* sheer paranoia */
 	thread->t_wchan_name = "DESTROYED";
-  
+
 	kfree(thread);
 }
 

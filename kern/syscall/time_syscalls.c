@@ -31,7 +31,6 @@
 #include <clock.h>
 #include <copyinout.h>
 #include <syscall.h>
-#include <kern/fcntl.h>
 
 /*
  * Example system call: get the time of day.
