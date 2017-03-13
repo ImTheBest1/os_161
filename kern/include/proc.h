@@ -30,6 +30,8 @@
 #ifndef _PROC_H_
 #define _PROC_H_
 
+#define FILE_SIZE 64
+
 /*
  * Definition of a process.
  *
@@ -37,8 +39,6 @@
  */
 
 #include <spinlock.h>
-
-#define FILE_SIZE 64
 
 struct addrspace;
 struct thread;
@@ -73,17 +73,16 @@ struct proc {
 	struct vnode *p_cwd;		/* current working directory */
 
 	/* add more material here as needed */
-	struct file_handler *filetable[64];
+	struct file_handler *filetable[FILE_SIZE];
 };
-/*This is the stdin,stdout,stderr initiate function*/
-
-void file_handler_std_init(struct proc *cur_proc);
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
+void file_handler_std_init(struct proc *cur_proc);
 
 /* Call once during system startup to allocate data structures. */
 void proc_bootstrap(void);
+
 
 /* Create a fresh process for use by runprogram(). */
 struct proc *proc_create_runprogram(const char *name);

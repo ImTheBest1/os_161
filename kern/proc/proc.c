@@ -113,6 +113,7 @@ void file_handler_std_init(struct proc *cur_proc){
 	 	cur_proc->filetable[0]->file_vn = vn_1;
 	 	cur_proc->filetable[0]->flag = O_RDONLY;
 	 	cur_proc->filetable[0]->offset = 0;
+		cur_proc->filetable[0]->file_lk = lock_create(deceive_console);
 
 		cur_proc->filetable[1] = kmalloc(sizeof(struct file_handler));
    	 	sig_1 =  vfs_open(deceive_console,O_WRONLY,0,&vn_2); // or mode_t = 0
@@ -121,6 +122,7 @@ void file_handler_std_init(struct proc *cur_proc){
    	 	cur_proc->filetable[1] ->file_vn = vn_2;
    	 	cur_proc->filetable[1] ->flag = O_WRONLY;
    	 	cur_proc->filetable[1] ->offset = 0;
+			cur_proc->filetable[1]->file_lk = lock_create(deceive_console);
 
 		cur_proc->filetable[2] = kmalloc(sizeof(struct file_handler));
 		sig_2 =  vfs_open(deceive_console,O_WRONLY,0,&vn_3); // or mode_t = 0
@@ -129,6 +131,7 @@ void file_handler_std_init(struct proc *cur_proc){
 		cur_proc->filetable[2] ->file_vn = vn_3;
 		cur_proc->filetable[2] ->flag = (int)O_WRONLY;
 		cur_proc->filetable[2] ->offset = 0;
+		cur_proc->filetable[2]->file_lk = lock_create(deceive_console);
 
 
 }
@@ -220,6 +223,7 @@ proc_destroy(struct proc *proc)
 	for (int i=0; i < FILE_SIZE;i++){
 		if(proc->filetable[i] != NULL){
 			 kfree(proc->filetable[i]->file_vn);
+			 lock_destroy(proc->filetable[i]->file_lk);
 		}
   		kfree(proc->filetable[i]);
   	}
