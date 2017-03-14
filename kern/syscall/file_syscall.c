@@ -25,12 +25,14 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 	bool empty = false;
 	if(user_filename == NULL){
 		// no such file, non arg
+		kprintf("hi1");
 		empty = true;
 		*retval = -1;
 		return  EFAULT;
 	}
 
 	if(flags > 64 ||flags < 0){
+		kprintf("hi2");
 		empty = true;
 		*retval = -1;
 		return EINVAL;
@@ -42,6 +44,7 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 	filename = (char *)kmalloc(sizeof(char)*PATH_MAX);
   open_code = copyin((const_userptr_t)user_filename,filename,sizeof(filename));
 	if(open_code){
+		kprintf("hi3");
 		*retval = -1;
 		return EFAULT;
 	}
@@ -68,6 +71,7 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 
 	if (!empty && index == FILE_SIZE){
 		// file table is full
+		kprintf("hi4");
 		*retval = -1;
 		return EMFILE;
 	}
@@ -80,6 +84,7 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 //	kprintf("@@@@@@@@@@@@@@@@@@@@@@@ open_code =  %d  @@@@@@@@@@@@@@@@@@@@@@@\n", open_code);
 
 	if(open_code){
+		kprintf("hi5");
 		*retval = -1;
 		return open_code;
 	}
@@ -112,7 +117,7 @@ int sys_read(int fd, void *buf,size_t buflen,int *retval){
 		return EFAULT;
 	}
 
-	if(curproc->filetable[fd]->flag != O_RDWR &&curproc->filetable[fd]->flag != O_RDONLY){
+	if(curproc->filetable[fd]->flag == O_WRONLY){
 		*retval = -1;
 		return EBADF;
 	}
@@ -189,9 +194,9 @@ int sys_write(int fd, const void *buf, size_t buflen, int *retval){
 		*retval = -1;
 		return EFAULT;
 	}
-	if(curproc->filetable[fd]->flag != 1 && curproc->filetable[fd]->flag != 2){
-		*retval = -1;
-		return EBADF;
+	if(curproc->filetable[fd]->flag == O_RDONLY){
+			*retval = -1;
+			return EBADF;
 	}
  lock_acquire(curproc->filetable[fd]->file_lk);
 	char path[] = "con:";
