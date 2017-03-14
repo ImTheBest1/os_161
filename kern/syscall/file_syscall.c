@@ -256,8 +256,8 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint64_t
 	(void) retval_1;
 	(void) new_position;
 	struct stat statbuf;
-	int response;
-	(void) response;
+	int adr_check;
+	(void) adr_check;
 
 	if (fd < 0 || fd > FILE_SIZE || curproc->filetable[fd] == NULL) {
 		*retval = -1;
@@ -276,37 +276,37 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint64_t
 
         case SEEK_SET:	// the new position is pos
             curproc->filetable[fd]->offset = pos;
-            response = VOP_ISSEEKABLE(curproc->filetable[fd]->file_vn);
-            if (!response) {
+            adr_check = VOP_ISSEEKABLE(curproc->filetable[fd]->file_vn);
+            if (!adr_check) {
 				*retval = -1;
-                return response;
+                return adr_check;
             }
 			new_position = (uint64_t)(curproc->filetable[fd]->offset);
             break;
 
         case SEEK_CUR: // the new position is the current position plus pos
             curproc->filetable[fd]->offset += pos;
-			response = VOP_ISSEEKABLE(curproc->filetable[fd]->file_vn);
-            if (!response) {
+			adr_check = VOP_ISSEEKABLE(curproc->filetable[fd]->file_vn);
+            if (!adr_check) {
 				*retval = -1;
-                return response;
+                return adr_check;
             }
 			new_position =(uint64_t)( curproc->filetable[fd]->offset);
             break;
 
 
         case SEEK_END: // the new position is the position of end-of-file plus pos
-            response = VOP_STAT(curproc->filetable[fd]->file_vn, &statbuf);
-            if (response) {
+            adr_check = VOP_STAT(curproc->filetable[fd]->file_vn, &statbuf);
+            if (adr_check) {
                 *retval = -1;
-                return response;
+                return adr_check;
             }
             curproc->filetable[fd]->offset = pos + statbuf.st_size;
-			response = 0;
-			response = VOP_ISSEEKABLE(curproc->filetable[fd]->file_vn);
-            if (!response) {
+			adr_check = 0;
+			adr_check = VOP_ISSEEKABLE(curproc->filetable[fd]->file_vn);
+            if (!adr_check) {
 				*retval = -1;
-                return response;
+                return adr_check;
             }
             new_position =(uint64_t)( curproc->filetable[fd]->offset);
 			//*retval = curproc->filetable[fd]->offset;
@@ -325,6 +325,15 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint64_t
 		lock_release(curproc->filetable[fd]->file_lk);
     return 0;
 }
+
+
+
+
+
+
+
+
+
 
 
 int sys_dup2(int old_fd, int new_fd,int *retval){

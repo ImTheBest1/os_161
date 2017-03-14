@@ -69,8 +69,15 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval);
 int sys_read(int fd, void *buf,size_t buflen,int *retval);
 int sys_write(int fd, const void *buf, size_t buflen,int *retval);
 int sys_close(int fd);
-// int sys_lseek(int fd, off_t pos, int whence,int *retval,int *retval_1);
 int sys_lseek(int fd, off_t pos, int whence,int *retval,int *retval_1, uint64_t new_position);
+// proc_syscall below
+int sys_fork(struct trapframe *tf,pid_t *retval);
+
+
+
+
+
+
 int sys_dup2(int old_fd, int new_fd,int *retval);
 int sys_chdir(userptr_t pathname,int *retval);
 int sys___getcwd(char *fname,size_t buflen, int *retval);

@@ -90,6 +90,10 @@ proc_create(const char *name)
 		 proc->filetable[i] = NULL;
   	}
 
+	/* pid fields*/
+	proc->pid = 0;
+	proc->ppid = 0;
+
 	return proc;
 }
 

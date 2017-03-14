@@ -74,6 +74,10 @@ struct proc {
 
 	/* add more material here as needed */
 	struct file_handler *filetable[FILE_SIZE];
+
+	pid_t pid;	// process id
+	pid_t ppid;	// parent process id
+
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
