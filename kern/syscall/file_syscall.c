@@ -25,14 +25,12 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 	bool empty = false;
 	if(user_filename == NULL){
 		// no such file, non arg
-		kprintf("hi1");
 		empty = true;
 		*retval = -1;
 		return  EFAULT;
 	}
 
 	if(flags > 64 ||flags < 0){
-		kprintf("hi2");
 		empty = true;
 		*retval = -1;
 		return EINVAL;
@@ -44,7 +42,6 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 	filename = (char *)kmalloc(sizeof(char)*PATH_MAX);
   open_code = copyin((const_userptr_t)user_filename,filename,sizeof(filename));
 	if(open_code){
-		kprintf("hi3");
 		*retval = -1;
 		return EFAULT;
 	}
@@ -71,7 +68,6 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 
 	if (!empty && index == FILE_SIZE){
 		// file table is full
-		kprintf("hi4");
 		*retval = -1;
 		return EMFILE;
 	}
@@ -84,7 +80,6 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 //	kprintf("@@@@@@@@@@@@@@@@@@@@@@@ open_code =  %d  @@@@@@@@@@@@@@@@@@@@@@@\n", open_code);
 
 	if(open_code){
-		kprintf("hi5");
 		*retval = -1;
 		return open_code;
 	}
@@ -396,5 +391,33 @@ int sys_chdir(userptr_t pathname,int *retval){
 		return err;
 	}
 	*retval = 0;
+	return 0;
+}
+
+int sys___getcwd(char *fname,size_t buflen, int *retval){
+	if((int)buflen < 0){
+		*retval = -1;
+		return EFAULT;
+	}
+	int adr_check;
+ //  	char *bufferName = kmalloc(buflen);
+	void *bufferName;
+	bufferName = kmalloc(sizeof(buflen));
+	struct iovec iov;
+	struct uio myuio;
+	uio_kinit(&iov, &myuio, bufferName, buflen, 0, UIO_READ);
+  // uio_kinit(&iov, &myuio, bufferName, buflen - 1 , 0, UIO_READ);
+	//update the offset
+	adr_check = vfs_getcwd(&myuio);
+	if(adr_check){
+		*retval = -1;
+		return adr_check;
+	}
+	adr_check = copyout(bufferName,(userptr_t)fname,buflen);
+	if(adr_check){
+		*retval = -1;
+		return adr_check;
+	}
+	*retval = buflen - myuio.uio_resid;
 	return 0;
 }

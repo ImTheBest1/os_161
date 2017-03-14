@@ -73,6 +73,6 @@ int sys_close(int fd);
 int sys_lseek(int fd, off_t pos, int whence,int *retval,int *retval_1);
 int sys_dup2(int old_fd, int new_fd,int *retval);
 int sys_chdir(userptr_t pathname,int *retval);
-
+int sys___getcwd(char *fname,size_t buflen, int *retval);
 
 #endif /* _SYSCALL_H_ */
