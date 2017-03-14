@@ -15,7 +15,7 @@
 #include <kern/errno.h>
 #include <kern/seek.h>
 #include <kern/stat.h>
-#include <kern/endian.h>
+#include <endian.h>
 
 #define MAX 1024
 
@@ -250,7 +250,7 @@ int sys_close(int fd){
 }
 
 
-int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint32_t new_position){
+int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint64_t new_position){
 
 	(void) retval;
 	(void) retval_1;
@@ -281,7 +281,7 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint32_t
 				*retval = -1;
                 return response;
             }
-			new_position = (uint32_t)(curproc->filetable[fd]->offset);
+			new_position = (uint64_t)(curproc->filetable[fd]->offset);
             break;
 
         case SEEK_CUR: // the new position is the current position plus pos
@@ -291,7 +291,7 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint32_t
 				*retval = -1;
                 return response;
             }
-			new_position =(uint32_t)( curproc->filetable[fd]->offset);
+			new_position =(uint64_t)( curproc->filetable[fd]->offset);
             break;
 
 
@@ -308,7 +308,7 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint32_t
 				*retval = -1;
                 return response;
             }
-            new_position =(uint32_t)( curproc->filetable[fd]->offset);
+            new_position =(uint64_t)( curproc->filetable[fd]->offset);
 			//*retval = curproc->filetable[fd]->offset;
             break;
 
@@ -317,10 +317,10 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint32_t
     }
 
 		// split 64bits to 32bits
-		// split64to32((uint64_t)new_position, retval, retval_1);
-		*retval = (new_position & 0xFFFFFFFF00000000) >> 32;
-		// user space
-		*retval_1 = new_position & 0x00000000FFFFFFFF;
+		split64to32(new_position, (uint32_t *)retval, (uint32_t*)retval_1);
+		// if fail the split64to32(), do manually as following
+ 		/*         *retval = (new_position & 0xFFFFFFFF00000000) >> 32;
+		/ *retval_1 = new_position & 0x00000000FFFFFFFF;     */
 
 		lock_release(curproc->filetable[fd]->file_lk);
 		// put 64 bit pos data into two 32 bit containe
