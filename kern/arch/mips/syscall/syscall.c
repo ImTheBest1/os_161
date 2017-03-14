@@ -87,7 +87,7 @@ syscall(struct trapframe *tf)
 	(void) _64bits;
 	int whence;
 	int err;
-	uint32_t new_position = 0;
+	uint64_t new_position = 0;
 	(void)new_position;
 	(void) retval_1;
 
