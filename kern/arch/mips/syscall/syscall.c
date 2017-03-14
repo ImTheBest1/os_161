@@ -87,6 +87,9 @@ syscall(struct trapframe *tf)
 	(void) _64bits;
 	int whence;
 	int err;
+	uint32_t new_position = 0;
+	(void)new_position;
+	(void) retval_1;
 
 	KASSERT(curthread != NULL);
 	KASSERT(curthread->t_curspl == 0);
@@ -151,7 +154,9 @@ syscall(struct trapframe *tf)
 		// copyin(const_userptr_t usersrc, void *dest, size_t len)
 		copyin((const_userptr_t)(tf->tf_sp + 16), &whence, (int)sizeof(whence));
 		//err = sys_lseek((int)tf->tf_a0, (off_t)_64bits,(int)tf->tf_a3);
-		err = sys_lseek((int)tf->tf_a0, (off_t)_64bits,whence,&retval,&retval_1);
+		// err = sys_lseek((int)tf->tf_a0, (off_t)_64bits,whence,&retval,&retval_1);
+		err = sys_lseek((int)tf->tf_a0, (off_t)_64bits,whence,&retval,&retval_1, new_position);
+
 		if(err == 0){
 			tf->tf_v1 = retval_1;
 		}
