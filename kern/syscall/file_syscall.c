@@ -323,8 +323,6 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint64_t
 		/ *retval_1 = new_position & 0x00000000FFFFFFFF;     */
 
 		lock_release(curproc->filetable[fd]->file_lk);
-		// put 64 bit pos data into two 32 bit containe
-		//lock_release(curproc->filetable[fd]->file_lk);
     return 0;
 }
 
