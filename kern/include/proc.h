@@ -31,6 +31,7 @@
 #define _PROC_H_
 
 #define FILE_SIZE 64
+#define PROC_TABLE_SIZE 1024
 
 /*
  * Definition of a process.
@@ -82,6 +83,7 @@ struct proc {
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
+
 void file_handler_std_init(struct proc *cur_proc);
 
 /* Call once during system startup to allocate data structures. */
@@ -105,6 +107,8 @@ struct addrspace *proc_getas(void);
 
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *proc_setas(struct addrspace *);
+
+extern struct proc *proc_table[PROC_TABLE_SIZE]; // process table for checking valid pid
 
 
 #endif /* _PROC_H_ */
