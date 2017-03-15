@@ -367,7 +367,7 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
 		// step 2.2 get child_addrspace
 		child_addrspace = kmalloc(sizeof(struct addrspace));
 		//as_copy(struct addrspace *src, struct addrspace **ret);
-		err = as_copy(curproc->p_addrspace, &child_addrspace);
+		err = as_copy(curproc->p_addrspace, &child_proc->p_addrspace);
 		if(err){
 	      kfree(child_addrspace);
 		  kfree(child_tf);
