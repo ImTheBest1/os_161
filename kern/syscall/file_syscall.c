@@ -379,7 +379,7 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
 	// step3 : make a new thread
 	//int thread_fork(const char *name, struct proc *proc, void (*func)(void *, unsigned long), void *data1, unsigned long data2);
 	void **package = kmalloc(2*sizeof(void *));
-	package[0] = (void *)child_addrspace;
+	package[0] = (void *)child_proc->p_addrspace;
 	package[1] = (void *)child_tf;
 	err = thread_fork("child",child_proc,&into_forked_process,package,0);
   	if(err){
@@ -417,6 +417,10 @@ void into_forked_process(void *data_1,unsigned long data_2){
 
     memcpy(&tf_1, tf, sizeof(struct trapframe));
 	mips_usermode(&tf_1);
+  }
+
+  pid_t sys_getpid(void){
+	  return curproc->pid;
   }
 
 

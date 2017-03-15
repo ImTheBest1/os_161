@@ -74,7 +74,9 @@ int
 dofork(void)
 {
 	int pid;
+
 	pid = fork();
+	tprintf("-------forkteest, line77, pid = %d\n", pid);
 	if (pid < 0) {
 		warn("fork");
 	}
