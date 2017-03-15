@@ -82,7 +82,7 @@ struct proc {
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
-extern struct proc *whole_proc_table[PROC_SIZE];
+static struct proc *whole_proc_table[PROC_SIZE];
 
 void file_handler_std_init(struct proc *cur_proc);
 

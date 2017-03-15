@@ -59,7 +59,7 @@
  * The process for the kernel; this holds all the kernel-only threads.
  */
 struct proc *kproc;
-struct proc *whole_proc_table[PROC_SIZE];
+static struct proc *whole_proc_table[PROC_SIZE];
 
 /*
  * Create a proc structure.
