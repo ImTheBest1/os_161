@@ -52,11 +52,14 @@
 #include <vfs.h>
 #include <syscall.h>
 #include <synch.h>
+#include <limits.h>
+
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
  */
 struct proc *kproc;
+struct proc *whole_proc_table[PROC_SIZE];
 
 /*
  * Create a proc structure.
@@ -90,8 +93,20 @@ proc_create(const char *name)
 		 proc->filetable[i] = NULL;
   	}
 
+	// initialize process table
+	for(int i = PID_MIN; i < PROC_SIZE; ++i){
+		if(whole_proc_table[i] ==  NULL){
+			whole_proc_table[i] = proc;
+			proc->pid = i;
+			proc->ppid = 0;
+			break;
+		}
+	}
+
 	return proc;
 }
+
+
 
 // -------DEAD---------------------
 // have the issue that make system stop working
@@ -265,7 +280,6 @@ proc_create_runprogram(const char *name)
 	/* VFS fields */
 
 
-
 	/*
 	 * Lock the current process to copy its current directory.
 	 * (We don't need to lock the new process, though, as we have
@@ -281,6 +295,21 @@ proc_create_runprogram(const char *name)
 	file_handler_std_init(newproc);
 	return newproc;
 }
+
+struct proc *proc_create_fork(const char *name, struct proc *cur_proc, int *retval){
+	struct proc *child_proc;
+	child_proc = proc_create(name);
+    if(child_proc == NULL){
+		proc_destroy(child_proc);
+      *retval = -1;
+      return NULL;
+    }
+	child_proc->ppid = cur_proc->pid; // current pid is child_proc's parent pid
+
+	return child_proc;
+}
+
+
 
 /*
  * Add a thread to a process. Either the thread or the process might

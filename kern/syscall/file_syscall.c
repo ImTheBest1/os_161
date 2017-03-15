@@ -16,6 +16,11 @@
 #include <kern/seek.h>
 #include <kern/stat.h>
 #include <endian.h>
+#include <mips/trapframe.h>
+#include <addrspace.h>
+
+
+
 
 #define MAX 1024
 
@@ -327,6 +332,100 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint64_t
 		//lock_release(curproc->filetable[fd]->file_lk);
     return 0;
 }
+
+
+int sys_fork(struct trapframe *tf,pid_t *retval){
+
+	struct proc *child_proc;
+	(void) child_proc;
+	struct trapframe *child_tf;
+	(void) child_tf;
+	struct addrspace *child_addrspace;
+	(void) child_addrspace;
+
+	int err;
+
+
+
+	// step1: create child proc
+    child_proc = proc_create_fork("child", curproc, retval);
+	for(int index = 0; index < FILE_SIZE; ++index){
+		// copy parent file table to child_proc file table
+		child_proc->filetable[index] = curproc->filetable[index];
+	}
+
+	// step2: get child addrspace and trapframe
+		// step2.1 get child_tf
+		child_tf = kmalloc(sizeof(struct trapframe));
+		if(child_tf == NULL){
+    		kfree(child_tf);
+    		proc_destroy(child_proc);
+			*retval = -1;
+    		return ENOMEM;
+  		}
+  		memcpy(child_tf,tf,sizeof(struct trapframe));
+
+		// step 2.2 get child_addrspace
+		child_addrspace = kmalloc(sizeof(struct addrspace));
+		//as_copy(struct addrspace *src, struct addrspace **ret);
+		err = as_copy(curproc->p_addrspace, &child_addrspace);
+		if(err){
+	      kfree(child_addrspace);
+		  kfree(child_tf);
+	      proc_destroy(child_proc);
+		  *retval = -1;
+	      return ENOMEM;
+	    }
+
+	// step3 : make a new thread
+	//int thread_fork(const char *name, struct proc *proc, void (*func)(void *, unsigned long), void *data1, unsigned long data2);
+	void **package = kmalloc(2*sizeof(void *));
+	package[0] = (void *)child_addrspace;
+	package[1] = (void *)child_tf;
+	err = thread_fork("child",child_proc,&into_forked_process,package,0);
+  	if(err){
+    	kfree(child_addrspace);
+    	kfree(child_tf);
+    	proc_destroy(child_proc);
+    	return err;
+  }
+
+  *retval = curproc->pid;
+  // using proc_create_runprogram format
+  if (curproc->p_cwd != NULL) {
+ 	 VOP_INCREF(curproc->p_cwd);
+ 	 child_proc->p_cwd = curproc->p_cwd;
+	 curproc->p_numthreads++;
+  }
+
+  return 0;
+}
+
+
+void into_forked_process(void *data_1,unsigned long data_2){
+	  (void)data_2;
+
+    struct trapframe *tf = ((void **)data_1)[1];
+    struct addrspace *child_addrspace = ((void **)data_1)[0];
+    struct trapframe tf_1;
+    tf->tf_v0 = 0;
+    tf->tf_a3 = 0;
+    tf->tf_epc += 4;
+
+    curproc->p_addrspace = child_addrspace;
+    as_activate();
+
+    memcpy(&tf_1, tf, sizeof(struct trapframe));
+	mips_usermode(&tf_1);
+  }
+
+
+
+
+
+
+
+
 
 
 int sys_dup2(int old_fd, int new_fd,int *retval){

@@ -72,6 +72,11 @@ int sys_write(int fd, const void *buf, size_t buflen,int *retval);
 int sys_close(int fd);
 // int sys_lseek(int fd, off_t pos, int whence,int *retval,int *retval_1);
 int sys_lseek(int fd, off_t pos, int whence,int *retval,int *retval_1, uint64_t new_position);
+
+// process contral system as following
+int sys_fork(struct trapframe *tf,pid_t *retval);
+void into_forked_process(void *data_1,unsigned long data2);
+
 int sys_dup2(int old_fd, int new_fd,int *retval);
 int sys_chdir(userptr_t pathname,int *retval);
 int sys___getcwd(char *fname,size_t buflen, int *retval);

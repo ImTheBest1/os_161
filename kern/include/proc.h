@@ -31,6 +31,7 @@
 #define _PROC_H_
 
 #define FILE_SIZE 64
+#define PROC_SIZE 1024
 
 /*
  * Definition of a process.
@@ -39,6 +40,7 @@
  */
 
 #include <spinlock.h>
+#include <limits.h>
 
 struct addrspace;
 struct thread;
@@ -74,10 +76,14 @@ struct proc {
 
 	/* add more material here as needed */
 	struct file_handler *filetable[FILE_SIZE];
+	pid_t pid;
+	pid_t ppid; // parent pid
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
+extern struct proc *whole_proc_table[PROC_SIZE];
+
 void file_handler_std_init(struct proc *cur_proc);
 
 /* Call once during system startup to allocate data structures. */
@@ -86,6 +92,7 @@ void proc_bootstrap(void);
 
 /* Create a fresh process for use by runprogram(). */
 struct proc *proc_create_runprogram(const char *name);
+struct proc *proc_create_fork(const char *name, struct proc *cur_proc, int *retval);
 
 /* Destroy a process. */
 void proc_destroy(struct proc *proc);
