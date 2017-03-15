@@ -52,12 +52,15 @@
 #include <vfs.h>
 #include <syscall.h>
 #include <synch.h>
+#include <limits.h>
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
  */
 struct proc *kproc;
 
+static struct pid_link *pid_cur = NULL;
+static pid_t *pid_table[1024];
 /*
  * Create a proc structure.
  */
@@ -90,10 +93,9 @@ proc_create(const char *name)
 		 proc->filetable[i] = NULL;
   	}
 
-	/* pid fields*/
-	proc->pid = 0;
-	proc->ppid = 0;
-
+	 /* pid fields*/
+	 proc->pid = 0;
+	 proc->ppid = 0;
 	return proc;
 }
 
@@ -382,4 +384,53 @@ proc_setas(struct addrspace *newas)
 	proc->p_addrspace = newas;
 	spinlock_release(&proc->p_lock);
 	return oldas;
+
+}
+
+
+
+
+
+int get_available_pid(){
+	/*
+	 * iterate whole teble to find empty slot for new pid
+	 */
+	//  static struct pid_link *pid_table[__PID_MAX] = {NULL};
+	 for(int i = __PID_MIN; i < 1024; i++){
+       if(pid_table[i] == NULL){
+				 return i;
+			 }
+	 }
+		 return -1;
+}
+
+
+struct pid_link *pid_link_create(){
+    // create a new linked list to track pid
+		struct pid_link* node = (struct pid_link *)kmalloc(sizeof(struct pid_link *));
+		node->ppid=0;
+		node->pid=(pid_t)get_available_pid();
+		node->cur=NULL;
+		return node;
+}
+
+pid_t pid_link_acquire(struct proc *porc){
+	// return a new available pid for fork()
+	// if there is no previous pid_link
+  if(pid_cur == NULL){
+     pid_cur = pid_link_create();
+		 if(pid_cur->pid < 0 ){
+			 kprintf("pid is invalid ! \n");
+		 }
+		 pid_cur->cur = porc;
+		 //pid_table[pid] = pid_cur;
+		 return pid_cur->pid;
+	}
+ // else
+  struct pid_link * child	= (struct pid_link *)kmalloc(sizeof(struct pid_link *));
+	child->ppid = pid_cur->pid;
+	child->pid = (pid_t)get_available_pid();
+	child->cur = porc;
+	//pid_table[child->pid] = child;
+  return child->pid;
 }

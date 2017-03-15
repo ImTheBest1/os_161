@@ -41,6 +41,12 @@ struct file_handler{
 	 struct lock *file_lk;
 };
 
+struct pid_link{
+	 pid_t pid;
+	 pid_t ppid;
+	 struct proc *cur;
+};
+
 
 /*
  * The system call dispatcher.
@@ -72,6 +78,7 @@ int sys_close(int fd);
 int sys_lseek(int fd, off_t pos, int whence,int *retval,int *retval_1, uint64_t new_position);
 // proc_syscall below
 int sys_fork(struct trapframe *tf,pid_t *retval);
+int sys_getpid(pid_t *retval);
 
 
 
@@ -82,4 +89,14 @@ int sys_dup2(int old_fd, int new_fd,int *retval);
 int sys_chdir(userptr_t pathname,int *retval);
 int sys___getcwd(char *fname,size_t buflen, int *retval);
 
+
+
+struct pid_link *pid_link_create(void);
+pid_t pid_link_acquire(struct proc *porc);
+int get_available_pid(void);
+
+ /*
+  * enter_forked_process
+  */
+void helper(void *data_1,unsigned long data2);
 #endif /* _SYSCALL_H_ */

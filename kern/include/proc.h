@@ -78,7 +78,7 @@ struct proc {
 
 	pid_t pid;	// process id
 	pid_t ppid;	// parent process id
-
+  
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
