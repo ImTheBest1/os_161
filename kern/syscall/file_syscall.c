@@ -22,6 +22,7 @@
 
 
 
+
 #define MAX 1024
 
 int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
@@ -397,6 +398,7 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
  	 child_proc->p_cwd = curproc->p_cwd;
 	 curproc->p_numthreads++;
   }
+  file_handler_std_init(child_proc);
 
   return 0;
 }
