@@ -346,8 +346,6 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
 
 	int err;
 
-
-
 	// step1: create child proc
     child_proc = proc_create_fork("child", curproc, retval);
 	for(int index = 0; index < FILE_SIZE; ++index){
@@ -389,7 +387,7 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
     	kfree(child_tf);
     	proc_destroy(child_proc);
     	return err;
-  }
+  	}
 
   *retval = curproc->pid;
   // using proc_create_runprogram format
@@ -398,7 +396,7 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
  	 child_proc->p_cwd = curproc->p_cwd;
 	 curproc->p_numthreads++;
   }
-  file_handler_std_init(child_proc);
+
 
   return 0;
 }
