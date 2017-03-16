@@ -78,12 +78,9 @@ int sys_close(int fd);
 int sys_lseek(int fd, off_t pos, int whence,int *retval,int *retval_1, uint64_t new_position);
 // proc_syscall below
 int sys_fork(struct trapframe *tf,pid_t *retval);
+
 int sys_getpid(pid_t *retval);
-
-
-
-
-
+int sys_execv(const char *program,char **args, int *retval);
 
 int sys_dup2(int old_fd, int new_fd,int *retval);
 int sys_chdir(userptr_t pathname,int *retval);
