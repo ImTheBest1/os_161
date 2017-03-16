@@ -242,19 +242,22 @@ proc_destroy(struct proc *proc)
 
 
 	for (int index = 0; index < FILE_SIZE; ++index){
-			if (proc->filetable[index] != NULL){
-				KASSERT(proc->filetable[index]->file_vn != NULL);
-				vfs_close(proc->filetable[index]->file_vn);
-				kfree(proc->filetable[index]->file_vn);
+			if (proc->filetable[index]){
+				if (proc->filetable[index]->file_vn) {
+					VOP_DECREF(proc->filetable[index]->file_vn);
+					proc->filetable[index]->file_vn = NULL;
+				}
+
 				lock_destroy(proc->filetable[index]->file_lk);
+
 				proc->filetable[index] = NULL;
 			}
 	}
-		whole_proc_table[proc->pid] = NULL;
+	cv_destroy(proc->proc_cv);
+	lock_destroy(proc->proc_lk);
 
-		cv_destroy(proc->proc_cv);
 
-
+proc->p_numthreads = 0;
 		KASSERT(proc->p_numthreads == 0);
 		spinlock_cleanup(&proc->p_lock);
 

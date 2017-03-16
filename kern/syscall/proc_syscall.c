@@ -157,7 +157,7 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
   kprintf("5.. sys_waitpid(), get child_proc from proc_table, succeed  ");
 
 	pid_t parent_pid = child_proc->ppid;
-	if(parent_pid != curproc->pid){
+	if(parent_pid == curproc->pid){
     kprintf("6.. sys_waitpid(), no parent, fail ");
 		*retval = -1;
 		return ECHILD;
@@ -182,8 +182,10 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
 		return adr_check;
 	}
 
-	whole_proc_table[pid] = NULL;
+
 	proc_destroy(child_proc); // Destroy child
+  whole_proc_table[pid] = NULL;
+  
 kprintf("\n------------------sys_waitpid(), ends, succeed \n\n ");
 	return pid;
 }
