@@ -32,32 +32,43 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
 	(void) child_addrspace;
 
 	int err;
-
+    kprintf("\n............................sys_fork(), Starting...................\n");
 	// step1: create child proc
     child_proc = proc_create_fork("child", curproc, retval);
+    if(child_proc == NULL){
+      kprintf("sys_fork(), fail create child_proc\n");
+      *retval = -1;
+      return ENOMEM;
+    }
+
+    kprintf("sys_fork(), create child_proc succeed\n");
 
 	// step2: get child addrspace and trapframe
 		// step2.1 get child_tf
 		child_tf = kmalloc(sizeof(struct trapframe));
 		if(child_tf == NULL){
+      kprintf("sys_fork(), fail create child_tf\n");
     		kfree(child_tf);
     		proc_destroy(child_proc);
 			*retval = -1;
     		return ENOMEM;
   		}
   		memcpy(child_tf,tf,sizeof(struct trapframe));
+      kprintf("sys_fork(), create child_tf succeed\n");
 
 		// step 2.2 get child_addrspace
 		child_addrspace = kmalloc(sizeof(struct addrspace));
 		//as_copy(struct addrspace *src, struct addrspace **ret);
 		err = as_copy(curproc->p_addrspace, &child_proc->p_addrspace);
 		if(err){
+      kprintf("sys_fork(), fail create child_addrspace\n");
 	      kfree(child_addrspace);
 		  kfree(child_tf);
 	      proc_destroy(child_proc);
 		  *retval = -1;
 	      return ENOMEM;
 	    }
+      kprintf("sys_fork(), create child_addrspace succeed\n");
 
 	// step3 : make a new thread
 	//int thread_fork(const char *name, struct proc *proc, void (*func)(void *, unsigned long), void *data1, unsigned long data2);
@@ -66,6 +77,7 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
 	package[1] = (void *)child_tf;
 	err = thread_fork("child",child_proc,&into_forked_process,package,0);
   	if(err){
+      kprintf("sys_fork(), fail thread_fork, couldnt fork curthread\n");
     	kfree(child_addrspace);
     	kfree(child_tf);
     	proc_destroy(child_proc);
@@ -73,6 +85,7 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
   	}
 
   *retval = curproc->pid;
+  kprintf("............................sys_fork(), ends, congrts...................\n\n");
   return 0;
 }
 

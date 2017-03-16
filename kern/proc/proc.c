@@ -311,7 +311,7 @@ proc_create_runprogram(const char *name)
 	}
 	spinlock_release(&curproc->p_lock);
 
-	file_handler_std_init(newproc);
+	//file_handler_std_init(newproc);
 	return newproc;
 }
 
