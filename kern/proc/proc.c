@@ -99,10 +99,10 @@ proc_create(const char *name)
 	proc->ppid = 0; // default for kernel, i guess
 
 	// initialize process table
-	for(int i = PID_MIN; i < PID_SIZE; ++i){
-		if(whole_proc_table[i] ==  NULL){
-			proc->pid = i;
-			whole_proc_table[i] = proc;
+	for(pid_t id = PID_MIN; id < PID_SIZE; ++id){
+		if(whole_proc_table[id] ==  NULL){
+			proc->pid = id;
+			whole_proc_table[proc->pid] = proc;
 			break;
 		}
 	}
@@ -297,7 +297,7 @@ proc_create_runprogram(const char *name)
 	newproc->p_addrspace = NULL;
 
 	/* VFS fields */
-	newproc->ppid = 1; // thats after the proc_create, set default to 1
+	newproc->ppid = PID_MIN; // thats after the proc_create, set default to 1
 
 	/*
 	 * Lock the current process to copy its current directory.

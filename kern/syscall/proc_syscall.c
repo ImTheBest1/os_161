@@ -85,6 +85,7 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
   	}
 
   *retval = curproc->pid;
+  child_proc->ppid = curproc->pid; // current pid is child_proc's parent pid
   kprintf("............................sys_fork(), ends, congrts...................\n\n");
   return 0;
 }
@@ -138,12 +139,13 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
 	}
   kprintf("2.. sys_waitpid(), status exits, succeed  ");
 
-	if(options != 0 || options != WNOHANG || options != WUNTRACED){
+	if(options != 0 && options != WNOHANG && options != WUNTRACED){
     kprintf("3.. sys_waitpid(), options is not zero, fail  ");
         *retval = -1;
         return EINVAL;
     }
     kprintf("3.. sys_waitpid(), options==0, succeed  ");
+
 	struct proc *child_proc = whole_proc_table[pid];
 	(void) child_proc;
 	// child_proc cantbe NULL
