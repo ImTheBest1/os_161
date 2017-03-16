@@ -175,7 +175,9 @@ syscall(struct trapframe *tf)
 		break;
 
 	  case SYS_fork:
+		//kprintf("New on fork\n");
 		err = sys_fork(tf,&retval);
+		//kprintf("fork done\n");
 		break;
 
     case SYS_getpid:

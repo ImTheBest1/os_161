@@ -221,19 +221,21 @@ proc_destroy(struct proc *proc)
 		}
 		as_destroy(as);
 	}
-
-	KASSERT(proc->p_numthreads == 0);
-	spinlock_cleanup(&proc->p_lock);
-
-	kfree(proc->p_name);
+	//kprintf("cleaning\n");
 	for (int i=0; i < FILE_SIZE;i++){
 		if(proc->filetable[i] != NULL){
-			 kfree(proc->filetable[i]->file_vn);
-			 lock_destroy(proc->filetable[i]->file_lk);
+			if(proc->filetable[i]->file_vn != NULL){
+				kfree(proc->filetable[i]->file_vn);
+			}
+			lock_destroy(proc->filetable[i]->file_lk);
+			kfree(proc->filetable[i]);
 		}
-  		kfree(proc->filetable[i]);
-  	}
+	}
+	KASSERT(proc->p_numthreads == 0);
+	spinlock_cleanup(&proc->p_lock);
+	kfree(proc->p_name);
 	kfree(proc);
+	//	kprintf("finished\n");
 }
 
 /*

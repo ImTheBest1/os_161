@@ -29,7 +29,7 @@
   //kprintf("check 1\n");
   struct proc *child = proc_create_runprogram(curproc->p_name);
   if(child == NULL){
-    *retval = -1;
+    *retval = 0;
     return ENOMEM;
   }
   // copy data
@@ -45,11 +45,13 @@
   error = as_copy(curproc->p_addrspace,&(child->p_addrspace));
   if(error){
     //kfree(addr);
+    kprintf("check 3\n");
     proc_destroy(child);
     return error;
   }
   struct trapframe *child_tf = kmalloc(sizeof(struct trapframe));
   if(child_tf == NULL){
+    kprintf("check 4\n");
     kfree(child_tf);
     proc_destroy(child);
     return error;
@@ -68,14 +70,13 @@
   error = thread_fork("child",child,helper,package,0);
 
   if(error){
+    kprintf("check 5\n");
     kfree(child_tf);
-
     // change pid needed here
-
     proc_destroy(child);
     return error;
   }
-  // kprintf("check 5\n");
+
   *retval = curproc->pid;
      return 0;
  }
@@ -231,6 +232,14 @@ int sys_execv(const char *program,char **args, int *retval){
        }
     }
         kprintf("check 5\n");
+        d = 0;
+        while( argholder[d] != NULL){
+          kfree(argholder[d]);
+        }
+        kfree(arg_addr);
+        kfree(filename);
+        kfree(argholder);
+        kfree(arg_addr);
     *retval = 0;
     enter_new_process(count,(userptr_t)stack,NULL,stack,ep);
 
