@@ -139,7 +139,7 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
   kprintf("2.. sys_waitpid(), status exits, succeed  ");
 
 	if(options != 0 || options != WNOHANG || options != WUNTRACED){
-    kprintf("3.. sys_waitpid(), options==0, fail  ");
+    kprintf("3.. sys_waitpid(), options is not zero, fail  ");
         *retval = -1;
         return EINVAL;
     }
