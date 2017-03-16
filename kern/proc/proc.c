@@ -325,9 +325,7 @@ struct proc *proc_create_fork(const char *name, struct proc *cur_proc, int *retv
     }
 	child_proc->ppid = cur_proc->pid; // current pid is child_proc's parent pid
 	// copy whole file_table to child_proc
-
 	for(int index = 0; index < FILE_SIZE; ++index){
-		// copy parent file table to child_proc file table
 		child_proc->filetable[index] = curproc->filetable[index];
 	}
 
