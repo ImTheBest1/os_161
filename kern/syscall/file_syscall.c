@@ -18,7 +18,7 @@
 #include <endian.h>
 #include <mips/trapframe.h>
 #include <addrspace.h>
-
+#include <kern/wait.h>
 
 
 
@@ -348,10 +348,6 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
 
 	// step1: create child proc
     child_proc = proc_create_fork("child", curproc, retval);
-	for(int index = 0; index < FILE_SIZE; ++index){
-		// copy parent file table to child_proc file table
-		child_proc->filetable[index] = curproc->filetable[index];
-	}
 
 	// step2: get child addrspace and trapframe
 		// step2.1 get child_tf
@@ -390,19 +386,12 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
   	}
 
   *retval = curproc->pid;
-  // using proc_create_runprogram format
-  if (curproc->p_cwd != NULL) {
- 	 VOP_INCREF(curproc->p_cwd);
- 	 child_proc->p_cwd = curproc->p_cwd;
-	 curproc->p_numthreads++;
-  }
-
-
   return 0;
 }
 
 
-void into_forked_process(void *data_1,unsigned long data_2){
+void into_forked_process(void *data_1,unsigned long data_2)
+{
 	  (void)data_2;
 
     struct trapframe *tf = ((void **)data_1)[1];
@@ -417,16 +406,81 @@ void into_forked_process(void *data_1,unsigned long data_2){
 
     memcpy(&tf_1, tf, sizeof(struct trapframe));
 	mips_usermode(&tf_1);
-  }
+}
 
-  pid_t sys_getpid(void){
+pid_t sys_getpid(void){
 	  return curproc->pid;
-  }
+}
 
+pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
+{
+	(void) status;
+	(void) options;
+	(void) retval;
+	if(pid < PID_MIN || pid > PID_SIZE){
+		*retval = -1;
+		return ESRCH;
+	}
+	if(status == NULL){
+		*retval = -1;
+		return EFAULT;
+	}
 
+	if(options != 0 || options != WNOHANG || options != WUNTRACED){
+        *retval = -1;
+        return EINVAL;
+    }
 
+	struct proc *child_proc = whole_proc_table[pid];
+	(void) child_proc;
+	// child_proc cantbe NULL
+	if(child_proc == NULL){
+		*retval = -1;
+		return ESRCH;
+	}
+	pid_t parent_pid = child_proc->ppid;
+	if(parent_pid != curproc->pid){
+		*retval = -1;
+		return ECHILD;
+	}
 
+	if(child_proc->proc_exit_signal){
+		cv_wait(child_proc->proc_cv, child_proc->proc_lk);
+	}else{
+		if( options == WNOHANG || options == WUNTRACED ){
+			*retval = -1;
+			return 0;
+		}
+	}
 
+	*status = child_proc->proc_exit_code;
+	whole_proc_table[pid] = NULL;
+	proc_destroy(child_proc); // Destroy child
+
+	return pid;
+}
+
+void sys__exit(int exitcode){
+	(void) exitcode;
+
+	lock_acquire(curproc->proc_lk);
+	pid_t parent_pid = curproc->ppid;
+	(void) parent_pid;
+
+	if(whole_proc_table[parent_pid]->proc_exit_signal == false){
+		curproc->proc_exit_signal = true;
+		curproc->proc_exit_code = _MKWAIT_EXIT(exitcode);
+		cv_broadcast(curproc->proc_cv, curproc->proc_lk);
+		lock_release(curproc->proc_lk);
+	}
+	else{
+
+		proc_destroy(curproc);
+	}
+
+	thread_exit();
+
+}
 
 
 

@@ -31,7 +31,7 @@
 #define _PROC_H_
 
 #define FILE_SIZE 64
-#define PROC_SIZE 1024
+#define PID_SIZE 1024
 
 /*
  * Definition of a process.
@@ -78,11 +78,15 @@ struct proc {
 	struct file_handler *filetable[FILE_SIZE];
 	pid_t pid;
 	pid_t ppid; // parent pid
+	struct cv *proc_cv; // for waitpid
+	int proc_exit_code;
+	struct lock *proc_lk;
+	bool proc_exit_signal;
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
-static struct proc *whole_proc_table[PROC_SIZE];
+extern struct proc *whole_proc_table[PID_SIZE];
 
 void file_handler_std_init(struct proc *cur_proc);
 
@@ -96,6 +100,7 @@ struct proc *proc_create_fork(const char *name, struct proc *cur_proc, int *retv
 
 /* Destroy a process. */
 void proc_destroy(struct proc *proc);
+// void proc_table_destroy();
 
 /* Attach a thread to a process. Must not already have a process. */
 int proc_addthread(struct proc *proc, struct thread *t);

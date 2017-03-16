@@ -59,7 +59,8 @@
  * The process for the kernel; this holds all the kernel-only threads.
  */
 struct proc *kproc;
-static struct proc *whole_proc_table[PROC_SIZE];
+struct proc *whole_proc_table[PID_SIZE];
+
 
 /*
  * Create a proc structure.
@@ -93,15 +94,21 @@ proc_create(const char *name)
 		 proc->filetable[i] = NULL;
   	}
 
+	proc->ppid = 0; // default for kernel, i guess
+
 	// initialize process table
-	for(int i = PID_MIN; i < PROC_SIZE; ++i){
+	for(int i = PID_MIN; i < PID_SIZE; ++i){
 		if(whole_proc_table[i] ==  NULL){
-			whole_proc_table[i] = proc;
 			proc->pid = i;
-			proc->ppid = 0;
+			whole_proc_table[i] = proc;
 			break;
 		}
 	}
+
+	proc->proc_exit_code = 0;
+	proc->proc_cv = cv_create("proc_cv");
+	proc->proc_lk = lock_create("proc_lk");
+	proc->proc_exit_signal = false;
 
 	return proc;
 }
@@ -231,19 +238,38 @@ proc_destroy(struct proc *proc)
 		as_destroy(as);
 	}
 
-	KASSERT(proc->p_numthreads == 0);
-	spinlock_cleanup(&proc->p_lock);
 
-	kfree(proc->p_name);
-	for (int i=0; i < FILE_SIZE;i++){
-		if(proc->filetable[i] != NULL){
-			 kfree(proc->filetable[i]->file_vn);
-			 lock_destroy(proc->filetable[i]->file_lk);
-		}
-  		kfree(proc->filetable[i]);
-  	}
-	kfree(proc);
+
+	// for (int i=0; i < FILE_SIZE;i++){
+	// 	if(proc->filetable[i] != NULL){
+	// 		 kfree(proc->filetable[i]->file_vn);
+	// 		 lock_destroy(proc->filetable[i]->file_lk);
+	// 	}
+  // 		kfree(proc->filetable[i]);
+  // 	}
+
+	for (int index = 0; index < FILE_SIZE; ++index){
+			if (proc->filetable[index] != NULL){
+				KASSERT(proc->filetable[index]->file_vn != NULL);
+				vfs_close(proc->filetable[index]->file_vn);
+				kfree(proc->filetable[index]->file_vn);
+				lock_destroy(proc->filetable[index]->file_lk);
+				proc->filetable[index] = NULL;
+			}
+	}
+		whole_proc_table[proc->pid] = NULL;
+
+		cv_destroy(proc->proc_cv);
+
+
+		KASSERT(proc->p_numthreads == 0);
+		spinlock_cleanup(&proc->p_lock);
+
+		kfree(proc->p_name);
+		kfree(proc);
+
 }
+
 
 /*
  * Create the process structure for the kernel.
@@ -278,7 +304,7 @@ proc_create_runprogram(const char *name)
 	newproc->p_addrspace = NULL;
 
 	/* VFS fields */
-
+	newproc->ppid = 1; // thats after the proc_create, set default to 1
 
 	/*
 	 * Lock the current process to copy its current directory.
@@ -298,13 +324,19 @@ proc_create_runprogram(const char *name)
 
 struct proc *proc_create_fork(const char *name, struct proc *cur_proc, int *retval){
 	struct proc *child_proc;
-	child_proc = proc_create(name);
+	child_proc = proc_create_runprogram(name);
     if(child_proc == NULL){
 		proc_destroy(child_proc);
       *retval = -1;
       return NULL;
     }
 	child_proc->ppid = cur_proc->pid; // current pid is child_proc's parent pid
+	// copy whole file_table to child_proc
+
+	for(int index = 0; index < FILE_SIZE; ++index){
+		// copy parent file table to child_proc file table
+		child_proc->filetable[index] = curproc->filetable[index];
+	}
 
 	return child_proc;
 }
