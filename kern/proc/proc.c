@@ -62,6 +62,8 @@ struct proc *kproc;
 struct proc *whole_proc_table[PID_SIZE];
 
 
+
+
 /*
  * Create a proc structure.
  */
@@ -238,15 +240,6 @@ proc_destroy(struct proc *proc)
 		as_destroy(as);
 	}
 
-
-
-	// for (int i=0; i < FILE_SIZE;i++){
-	// 	if(proc->filetable[i] != NULL){
-	// 		 kfree(proc->filetable[i]->file_vn);
-	// 		 lock_destroy(proc->filetable[i]->file_lk);
-	// 	}
-  // 		kfree(proc->filetable[i]);
-  // 	}
 
 	for (int index = 0; index < FILE_SIZE; ++index){
 			if (proc->filetable[index] != NULL){

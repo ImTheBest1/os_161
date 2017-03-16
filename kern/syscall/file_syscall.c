@@ -417,6 +417,8 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
 	(void) status;
 	(void) options;
 	(void) retval;
+	int adr_check;
+	(void) adr_check;
 	if(pid < PID_MIN || pid > PID_SIZE){
 		*retval = -1;
 		return ESRCH;
@@ -453,7 +455,13 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
 		}
 	}
 
-	*status = child_proc->proc_exit_code;
+	// *status = child_proc->proc_exit_code;
+	adr_check = copyout(&child_proc->proc_exit_code, (userptr_t) status, sizeof(int));
+	if(adr_check){
+		*retval = -1;
+		return adr_check;
+	}
+
 	whole_proc_table[pid] = NULL;
 	proc_destroy(child_proc); // Destroy child
 

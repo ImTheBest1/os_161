@@ -88,6 +88,7 @@ struct proc {
 extern struct proc *kproc;
 extern struct proc *whole_proc_table[PID_SIZE];
 
+
 void file_handler_std_init(struct proc *cur_proc);
 
 /* Call once during system startup to allocate data structures. */
