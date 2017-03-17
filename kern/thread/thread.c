@@ -543,7 +543,7 @@ thread_fork(const char *name,
 		thread_destroy(newthread);
 		return result;
 	}
-
+   
 	/*
 	 * Because new threads come out holding the cpu runqueue lock
 	 * (see notes at bottom of thread_switch), we need to account

@@ -231,7 +231,6 @@ int sys_write(int fd, const void *buf, size_t buflen, int *retval){
 	uio_kinit(&iov, &myuio, bufferName, buflen, curproc->filetable[fd]->offset, UIO_WRITE);
 	// int (*vop_write)(struct vnode *file, struct uio *uio);
 	adr_check = VOP_WRITE(curproc->filetable[fd]->file_vn, &myuio);
-
 	if(adr_check){
 		lock_release(curproc->filetable[fd]->file_lk);
 		*retval = -1;

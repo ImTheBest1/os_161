@@ -109,7 +109,7 @@ proc_create(const char *name)
 	}
 
 	proc->proc_exit_code = 0;
-	proc->proc_wchan = wchan_create("proc_wchan");
+	proc->proc_cv = cv_create("proc_cv");
 	proc->proc_lk = lock_create("proc_lk");
 	proc->proc_exit_signal = false;
 
@@ -177,7 +177,7 @@ proc_destroy(struct proc *proc)
 	 * hang around beyond process exit. Some wait/exit designs
 	 * do, some don't.
 	 */
-
+  //kprintf("deleting! 1\n");
 	KASSERT(proc != NULL);
 	KASSERT(proc != kproc);
 
@@ -192,7 +192,7 @@ proc_destroy(struct proc *proc)
 		VOP_DECREF(proc->p_cwd);
 		proc->p_cwd = NULL;
 	}
-
+  //kprintf("deleting! 2\n");
 	/* VM fields */
 	if (proc->p_addrspace) {
 		/*
@@ -240,28 +240,29 @@ proc_destroy(struct proc *proc)
 		}
 		as_destroy(as);
 	}
-
-
-	for (int index = 0; index < FILE_SIZE; ++index){
-			if (proc->filetable[index] != NULL){
-				if (proc->filetable[index]->file_vn) {
-					VOP_DECREF(proc->filetable[index]->file_vn);
-					vfs_close(proc->filetable[index]->file_vn);
-					proc->filetable[index]->file_vn = NULL;
-				}
-
-				lock_destroy(proc->filetable[index]->file_lk);
-
-				proc->filetable[index] = NULL;
-			}
+  for(int i = 0; i< PID_SIZE;i++){
+		if(whole_proc_table[i] == NULL){
+			break;
+		}
+		if(whole_proc_table[i]->ppid == proc->pid){
+			whole_proc_table[i]->ppid = -1; // set to null
+		}
 	}
-	wchan_destroy(proc->proc_wchan);
+	for (int index = 0; index < FILE_SIZE; index++){
+			if (proc->filetable[index] != NULL){
+				if (proc->filetable[index]->file_vn != NULL) {
+					if(proc->filetable[index]->file_vn->vn_refcount == 1){
+						kfree(proc->filetable[index]->file_vn);
+					}
+				}
+			}
+			proc->filetable[index] = NULL;
+	}
+	cv_destroy(proc->proc_cv);
 	lock_destroy(proc->proc_lk);
-
 	proc->p_numthreads = 0;
 		KASSERT(proc->p_numthreads == 0);
 		spinlock_cleanup(&proc->p_lock);
-
 		kfree(proc->p_name);
 		kfree(proc);
 
