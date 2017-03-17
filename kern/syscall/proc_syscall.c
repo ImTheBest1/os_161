@@ -66,7 +66,7 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
 	      kfree(child_addrspace);
 		  kfree(child_tf);
 	      proc_destroy(child_proc);
-		  *retval = -1;
+		  	*retval = -1;
 	      return ENOMEM;
 	    }
       //kprintf("3..sys_fork(), create child_addrspace succeed :)  ");
@@ -174,21 +174,18 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
   //kprintf("6.. sys_waitpid(), I have parent, succeed   ");
   //kprintf("checkpoint 9\n");
 	lock_acquire(child_proc->proc_lk);
-	while(child_proc->proc_exit_signal){
+	if(child_proc->proc_exit_signal){
 		cv_wait(child_proc->proc_cv, child_proc->proc_lk);
-		// spinlock_acquire(&child_proc->p_lock);
-    // wchan_sleep(child_proc->proc_wchan, &child_proc->p_lock);
-		// spinlock_acquire(&child_proc->p_lock);
   //  kprintf("7.. sys_waitpid, child_proc wait to exit, succeed\n");
 	}
 	lock_release(child_proc->proc_lk);
-	int exit_code = 0;
+
 	if( options == WNOHANG){
 			*retval = -1;
 			return 0;
 		}
 	// *status = child_proc->proc_exit_code;
-	adr_check = copyout((void *)&exit_code, (userptr_t)status, sizeof(int));
+	adr_check = copyout((void *)&child_proc->proc_exit_code, (userptr_t)status, sizeof(int));
 	if(adr_check){
 		*retval = -1;
 		return adr_check;
@@ -203,27 +200,19 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
 
 void sys__exit(int exitcode){
 	(void) exitcode;
-  struct proc *temp;
 //	struct addrspace *as;
-	temp = curproc;
-	// pid_t parent_pid = curproc->ppid;
- //if(whole_proc_table[parent_pid]->proc_exit_signal == false){
-	temp->proc_exit_signal = true;
-	temp->proc_exit_code = _MKWAIT_EXIT(exitcode);
-	lock_acquire(temp->proc_lk);
-  cv_broadcast(temp->proc_cv, temp->proc_lk);
-	lock_release(temp->proc_lk);
-	// kprintf("checkpoint 4\n");
-	// 	spinlock_acquire(&curproc->p_lock);
-	// 	kprintf("checkpoint 5\n");
-  //   wchan_wakeall(curproc->proc_wchan, &curproc->p_lock);
-	// 	spinlock_release(&curproc->p_lock);
-   //}else{
-	if(curthread->t_proc != NULL){
-  proc_remthread(curthread);
+
+	pid_t parent_pid = curproc->ppid;
+ if(whole_proc_table[parent_pid]->proc_exit_signal){
+	proc_destroy(curproc);
+}else{
+	curproc->proc_exit_signal = WIFSIGNALED(1);
+	curproc->proc_exit_code = _MKWAIT_EXIT(exitcode);
+	lock_acquire(curproc->proc_lk);
+  cv_broadcast(curproc->proc_cv, curproc->proc_lk);
+	lock_release(curproc->proc_lk);
 }
-	proc_destroy(temp);
-//	}
+
 	thread_exit();
 
 }
