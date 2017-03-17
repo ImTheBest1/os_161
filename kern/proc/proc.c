@@ -53,6 +53,7 @@
 #include <syscall.h>
 #include <synch.h>
 #include <limits.h>
+#include <wchan.h>
 
 
 /*
@@ -108,7 +109,7 @@ proc_create(const char *name)
 	}
 
 	proc->proc_exit_code = 0;
-	proc->proc_cv = cv_create("proc_cv");
+	proc->proc_wchan = wchan_create("proc_wchan");
 	proc->proc_lk = lock_create("proc_lk");
 	proc->proc_exit_signal = false;
 
@@ -242,9 +243,10 @@ proc_destroy(struct proc *proc)
 
 
 	for (int index = 0; index < FILE_SIZE; ++index){
-			if (proc->filetable[index]){
+			if (proc->filetable[index] != NULL){
 				if (proc->filetable[index]->file_vn) {
 					VOP_DECREF(proc->filetable[index]->file_vn);
+					vfs_close(proc->filetable[index]->file_vn);
 					proc->filetable[index]->file_vn = NULL;
 				}
 
@@ -253,11 +255,10 @@ proc_destroy(struct proc *proc)
 				proc->filetable[index] = NULL;
 			}
 	}
-	cv_destroy(proc->proc_cv);
+	wchan_destroy(proc->proc_wchan);
 	lock_destroy(proc->proc_lk);
 
-
-proc->p_numthreads = 0;
+	proc->p_numthreads = 0;
 		KASSERT(proc->p_numthreads == 0);
 		spinlock_cleanup(&proc->p_lock);
 

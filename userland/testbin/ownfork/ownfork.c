@@ -15,11 +15,11 @@ main(int argc, char *argv[])
   int pid = fork();
 
   if (pid == 0) {
-    tprintf("~~~~~~~~~im here~~~~~~~~~~~~~\n");
+    tprintf("~~~~~~~&&&&&~~im child~~~~~~~~~~~~\n");
     exit(1);
   } else {
     int ret;
-    tprintf("!!!!!!!!!!!!!!!!!!!!!!!omg, fail fork---\n");
+    tprintf("~~~~~~~&&&~~~~~~~~~~~parent---\n");
     waitpid(pid, &ret, 0);
     // exit(0);
   }

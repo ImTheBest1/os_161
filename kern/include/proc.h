@@ -78,7 +78,7 @@ struct proc {
 	struct file_handler *filetable[FILE_SIZE];
 	pid_t pid;
 	pid_t ppid; // parent pid
-	struct cv *proc_cv; // for waitpid
+	struct wchan *proc_wchan; // for waitpid
 	int proc_exit_code;
 	struct lock *proc_lk;
 	bool proc_exit_signal;
