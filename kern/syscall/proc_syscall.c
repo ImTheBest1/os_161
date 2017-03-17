@@ -95,7 +95,7 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
 		}
   *retval = child_proc->pid;
   child_proc->ppid = curproc->pid; // current pid is child_proc's parent pid
-  //kprintf("\n............................sys_fork(), ends, congrts...................returning:%d\n\n",child_proc->pid);
+  //kprintf("\n...................sys_fork(), ends..............returning: child->pid = %d, parent->pid: %d\n\n",child_proc->pid, child_proc->ppid);
   return 0;
 }
 
@@ -119,9 +119,7 @@ void into_forked_process(void *data_1,unsigned long data_2)
 }
 
 pid_t sys_getpid(void){
-  //kprintf("\n............................sys_getpid(), starting..................\n\n");
   pid_t cur_pid = curproc->pid;
-  //kprintf("1..sys_getpid(), return curproc->pid = %d...................\n\n", cur_pid);
 	  return cur_pid;
 }
 
@@ -141,18 +139,24 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
 	}
   //kprintf("1.. sys_waitpid(), pid is in range, succeed   ");
 
-	// if(status == NULL){
-  //   kprintf("2.. sys_waitpid(), fail, status doesnt exits\n");
-	// 	*retval = -1;
-	// 	return EFAULT;
-	// }
+	if(status == NULL){
+    //kprintf("2.. sys_waitpid(), fail, status doesnt exits\n");
+		*retval = -1;
+		return EFAULT;
+	}
   //kprintf("2.. sys_waitpid(), status exits, succeed  ");
 
-	if(options != 0 && options != WNOHANG && options != WUNTRACED){
-    //kprintf("\n3.. sys_waitpid(), options is not zero, fail\n");
-        *retval = -1;
-        return EINVAL;
-    }
+	// if(options != 0 && options != WNOHANG && options != WUNTRACED){
+  //   //kprintf("\n3.. sys_waitpid(), options is not zero, fail\n");
+  //       *retval = -1;
+  //       return EINVAL;
+  //   }
+
+		if(options != 0){
+	    //kprintf("\n3.. sys_waitpid(), options is not zero, fail\n");
+	        *retval = -1;
+	        return EINVAL;
+	    }
     //kprintf("3.. sys_waitpid(), options==0, succeed  ");
   //kprintf("checkpoint 8\n");
 	struct proc *child_proc = whole_proc_table[pid];
@@ -171,6 +175,7 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
 		*retval = -1;
 		return ECHILD;
 	}
+
   //kprintf("6.. sys_waitpid(), I have parent, succeed   ");
   //kprintf("checkpoint 9\n");
 	lock_acquire(child_proc->proc_lk);
@@ -206,10 +211,11 @@ void sys__exit(int exitcode){
  if(whole_proc_table[parent_pid]->proc_exit_signal){
 	proc_destroy(curproc);
 }else{
-	curproc->proc_exit_signal = WIFSIGNALED(1);
+	curproc->proc_exit_signal = true;
 	curproc->proc_exit_code = _MKWAIT_EXIT(exitcode);
 	lock_acquire(curproc->proc_lk);
-  cv_broadcast(curproc->proc_cv, curproc->proc_lk);
+	cv_broadcast(curproc->proc_cv, curproc->proc_lk);
+  //cv_broadcast(whole_proc_table[parent_pid]->proc_cv, whole_proc_table[parent_pid]->proc_lk);
 	lock_release(curproc->proc_lk);
 }
 

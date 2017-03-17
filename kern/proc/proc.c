@@ -245,15 +245,15 @@ proc_destroy(struct proc *proc)
 			break;
 		}
 		if(whole_proc_table[i]->ppid == proc->pid){
-			whole_proc_table[i]->ppid = -1; // set to null
+			whole_proc_table[i]->ppid = 0; // set to null
 		}
 	}
 	for (int index = 0; index < FILE_SIZE; index++){
 			if (proc->filetable[index] != NULL){
 				if (proc->filetable[index]->file_vn != NULL) {
-					if(proc->filetable[index]->file_vn->vn_refcount == 1){
-						kfree(proc->filetable[index]->file_vn);
-					}
+					VOP_DECREF(proc->filetable[index]->file_vn);
+					vfs_close(proc->filetable[index]->file_vn);
+					proc->filetable[index]->file_vn = NULL;
 				}
 			}
 			proc->filetable[index] = NULL;

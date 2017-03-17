@@ -184,7 +184,9 @@ test(int nowait)
 	 * unique filename per instance of forktest.
 	 * So...
 	 */
+
 	snprintf(filename, 32, "%s-%d.bin", FORKTEST_FILENAME_BASE, getpid());
+
 	int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC);
 	if(fd < 3) {
 		// 0, 1, 2 are stdin, stdout, stderr
@@ -199,6 +201,7 @@ test(int nowait)
 		warnx("depth %d, should be 1", depth);
 	}
 	check();
+
 
 	pid1 = dofork();
 	nprintf(".");
