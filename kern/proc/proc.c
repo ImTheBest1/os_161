@@ -109,7 +109,7 @@ proc_create(const char *name)
 	}
 
 	proc->proc_exit_code = 0;
-	proc->proc_wchan = wchan_create("proc_wchan");
+	proc->proc_cv = cv_create("proc_cv");
 	proc->proc_lk = lock_create("proc_lk");
 	proc->proc_exit_signal = false;
 
@@ -249,13 +249,11 @@ proc_destroy(struct proc *proc)
 					vfs_close(proc->filetable[index]->file_vn);
 					proc->filetable[index]->file_vn = NULL;
 				}
-
-				lock_destroy(proc->filetable[index]->file_lk);
-
-				proc->filetable[index] = NULL;
+				lock_destroy(proc->filetable[index]->file_lk); // destroy lock inside file_table
+				proc->filetable[index] = NULL; // kfree
 			}
 	}
-	wchan_destroy(proc->proc_wchan);
+	cv_destroy(proc->proc_cv);
 	lock_destroy(proc->proc_lk);
 
 	proc->p_numthreads = 0;

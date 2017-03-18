@@ -166,8 +166,8 @@ pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
   //kprintf("6.. sys_waitpid(), I have parent, succeed   ");
 
 	if(child_proc->proc_exit_signal){
-		// cv_wait(child_proc->proc_cv, child_proc->proc_lk);
-    wchan_sleep(child_proc->proc_wchan, &child_proc->p_lock);
+		cv_wait(child_proc->proc_cv, child_proc->proc_lk);
+    // wchan_sleep(child_proc->proc_wchan, &child_proc->p_lock);
   //  kprintf("7.. sys_waitpid, child_proc wait to exit, succeed  ");
 	}else{
 		if( options == WNOHANG){
@@ -202,8 +202,7 @@ void sys__exit(int exitcode){
 	if(whole_proc_table[parent_pid]->proc_exit_signal == false){
 		curproc->proc_exit_signal = true;
 		curproc->proc_exit_code = _MKWAIT_EXIT(exitcode);
-		// cv_broadcast(curproc->proc_cv, curproc->proc_lk);
-    wchan_wakeall(curproc->proc_wchan, &curproc->p_lock);
+		cv_broadcast(curproc->proc_cv, curproc->proc_lk);
 		lock_release(curproc->proc_lk);
 	}
 	else{
