@@ -21,7 +21,7 @@ main(int argc, char *argv[])
     int ret;
     tprintf("~~~~~~~&&&~~~~~~~~~~~parent---\n");
     waitpid(pid, &ret, 0);
-    // exit(0);
+    exit(0);
   }
   return 0;
 }
