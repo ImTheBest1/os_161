@@ -41,6 +41,7 @@
 
 #include <spinlock.h>
 #include <limits.h>
+#include <syscall.h>
 
 struct addrspace;
 struct thread;
@@ -75,7 +76,8 @@ struct proc {
 	struct vnode *p_cwd;		/* current working directory */
 
 	/* add more material here as needed */
-	struct file_handler *filetable[FILE_SIZE];
+	struct file_handler **filetable;
+
 	pid_t pid;
 	pid_t ppid; // parent pid
 	// struct wchan *proc_wchan; // for waitpid

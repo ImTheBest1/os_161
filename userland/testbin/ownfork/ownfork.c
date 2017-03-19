@@ -10,18 +10,22 @@ main(int argc, char *argv[])
 {
   (void)argc; // dont need these
   (void)argv; // dont need these
+  int child_pid;
+  int p_pid;
 
   warnx("Starting ...\n");
   int pid = fork();
 
   if (pid == 0) {
-    tprintf("~~~~~~~&&&&&~~im child~~~~~~~~~~~~\n");
-    exit(1);
+	  child_pid = getpid();
+    tprintf("~~~~~~~&&&&&~~im the child,mypid = %d~~~~~~~~~~~~\n", child_pid);
+
   } else {
-    int ret;
-    tprintf("~~~~~~~&&&~~~~~~~~~~~parent---\n");
-    waitpid(pid, &ret, 0);
-    exit(0);
+    // int ret;
+	p_pid = getpid();
+    tprintf("~~~~~~~&&&~~~~~~~Im the parent,mypid = %d---\n", p_pid);
+    // waitpid(pid, &ret, 0);
+
   }
   return 0;
 }
