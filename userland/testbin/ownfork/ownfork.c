@@ -18,12 +18,12 @@ main(int argc, char *argv[])
 
   if (pid == 0) {
 	  child_pid = getpid();
-    tprintf("~~~~~~~&&&&&~~im the child,mypid = %d~~~~~~~~~~~~\n", child_pid);
+    tprintf("I'm the child,mypid = %d~~~~~~~~~~~~\n", child_pid);
 
   } else {
     // int ret;
 	p_pid = getpid();
-    tprintf("~~~~~~~&&&~~~~~~~Im the parent,mypid = %d---\n", p_pid);
+    tprintf("I'm the parent,mypid = %d---\n", p_pid);
     // waitpid(pid, &ret, 0);
 
   }

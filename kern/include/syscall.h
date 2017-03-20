@@ -75,8 +75,8 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval,int *retval_1, uint64_t 
 
 // process contral system as following
 int sys_fork(struct trapframe *tf,pid_t *retval);
-void into_forked_process(void *data_1,unsigned long data2);
-pid_t sys_getpid(void);
+void * into_forked_process(struct trapframe *data_1,unsigned long data2);
+int sys_getpid(int *retval);
 pid_t sys_waitpid(pid_t pid, int *status, int options, int*retval);
 void sys__exit(int exitcode);
 

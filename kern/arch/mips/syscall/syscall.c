@@ -145,7 +145,6 @@ syscall(struct trapframe *tf)
 		_64bits <<= 32;	// left shift 32bits
 		_64bits |= tf->tf_a3; // take tf_a3
 
-		// copyin(const_userptr_t usersrc, void *dest, size_t len)
 		copyin((const_userptr_t)(tf->tf_sp + 16), &whence, (int)sizeof(whence));
 		err = sys_lseek((int)tf->tf_a0, (off_t)_64bits,whence,&retval,&retval_1, new_position);
 		if(!err){
@@ -158,7 +157,7 @@ syscall(struct trapframe *tf)
 		break;
 
 		case SYS_getpid:
-		err = sys_getpid();
+		err = sys_getpid(&retval);
 		break;
 
 		case SYS_waitpid:

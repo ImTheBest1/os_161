@@ -100,19 +100,20 @@ proc_create(const char *name)
 
 	proc->ppid = 0; // default for kernel, i guess
 
+	proc->proc_exit_code = 0;
+	proc->proc_cv = cv_create("proc_cv");
+	proc->proc_lk = lock_create("proc_lk");
+	proc->proc_exit_signal = false;
+	proc->proc_wait_signal = false;
+
 	// initialize process table
-	for(pid_t id = PID_MIN; id < PID_SIZE; ++id){
+	for(pid_t id = 1; id < PID_SIZE; ++id){
 		if(whole_proc_table[id] ==  NULL){
 			proc->pid = id;
 			whole_proc_table[proc->pid] = proc;
 			break;
 		}
 	}
-
-	proc->proc_exit_code = 0;
-	proc->proc_cv = cv_create("proc_cv");
-	proc->proc_lk = lock_create("proc_lk");
-	proc->proc_exit_signal = false;
 
 	return proc;
 }
@@ -300,7 +301,7 @@ proc_create_runprogram(const char *name)
 	newproc->p_addrspace = NULL;
 
 	/* VFS fields */
-	newproc->ppid = PID_MIN; // thats after the proc_create, set default to 1
+	newproc->ppid = 1; // 0 for kernel
 
 	/*
 	* Lock the current process to copy its current directory.
@@ -318,26 +319,39 @@ proc_create_runprogram(const char *name)
 	return newproc;
 }
 
-struct proc *proc_create_fork(const char *name, struct proc *cur_proc, int *retval){
-	struct proc *child_proc;
-	child_proc = proc_create_runprogram(name);
-	if(child_proc == NULL){
-		proc_destroy(child_proc);
-		*retval = -1;
+struct proc *proc_create_fork(const char *name){
+	//child_proc = proc_create_runprogram(name);
+	struct proc *proc;
+	proc = kmalloc(sizeof(*proc));
+	if (proc == NULL) {
 		return NULL;
 	}
-	child_proc->ppid = cur_proc->pid; // current pid is child_proc's parent pid
-	if(cur_proc->pid == -1){
-		kprintf("cur_proc pid < 0");
-	}else{
-		kprintf("cur_proc pid = %d\n", cur_proc->pid);
-	}
-	// copy whole file_table to child_proc
-	for(int index = 0; index < FILE_SIZE; index++){
-		child_proc->filetable[index] = curproc->filetable[index];
+	proc->p_name = kstrdup(name);
+	if (proc->p_name == NULL) {
+		kfree(proc);
+		return NULL;
 	}
 
-	return child_proc;
+	proc->filetable = kmalloc(FILE_SIZE * (sizeof(struct file_handler)));
+
+	proc->p_numthreads = 0;
+	spinlock_init(&proc->p_lock);
+
+	/* VM fields */
+	proc->p_addrspace = kmalloc(sizeof(struct addrspace));
+
+	/* VFS fields */
+	proc->p_cwd = NULL;
+
+	proc->ppid = 0; // default for kernel, i guess
+
+
+	proc->proc_exit_code = 0;
+	proc->proc_cv = cv_create("proc_cv");
+	proc->proc_lk = lock_create("proc_lk");
+	proc->proc_exit_signal = false;
+	proc->proc_wait_signal = false;
+	return proc;
 }
 
 

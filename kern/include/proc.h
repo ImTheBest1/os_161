@@ -85,12 +85,12 @@ struct proc {
 	int proc_exit_code;
 	struct lock *proc_lk;
 	bool proc_exit_signal;
+	bool proc_wait_signal;
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
 extern struct proc *whole_proc_table[PID_SIZE];
-
 
 void file_handler_std_init(struct proc *cur_proc);
 
@@ -100,7 +100,7 @@ void proc_bootstrap(void);
 
 /* Create a fresh process for use by runprogram(). */
 struct proc *proc_create_runprogram(const char *name);
-struct proc *proc_create_fork(const char *name, struct proc *cur_proc, int *retval);
+struct proc *proc_create_fork(const char *name);
 
 /* Destroy a process. */
 void proc_destroy(struct proc *proc);

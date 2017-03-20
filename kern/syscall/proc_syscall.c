@@ -26,97 +26,83 @@
 int sys_fork(struct trapframe *tf,pid_t *retval){
 
 	struct proc *child_proc;
-	(void) child_proc;
 	struct trapframe *child_tf;
-	(void) child_tf;
-	struct addrspace *child_addrspace;
-	(void) child_addrspace;
 
 	int err;
-	child_proc = proc_create_fork("child", curproc, retval);
+	child_proc = proc_create_fork("child");
 	if(child_proc == NULL){
-		*retval = -1;
 		return ENOMEM;
 	}
+
+	// copy whole file_table to child_proc
+	for(int index = 0; index < FILE_SIZE; index++){
+		child_proc->filetable[index] = curproc->filetable[index];
+	}
+	child_proc->ppid = curproc->pid;
+
 	child_tf = kmalloc(sizeof(struct trapframe));
 	if(child_tf == NULL){
-		kfree(child_tf);
 		proc_destroy(child_proc);
-		*retval = -1;
 		return ENOMEM;
 	}
 	memcpy(child_tf,tf,sizeof(struct trapframe));
 
-	child_addrspace = kmalloc(sizeof(struct addrspace));
 	err = as_copy(curproc->p_addrspace, &child_proc->p_addrspace);
 	if(err){
-		kfree(child_addrspace);
 		kfree(child_tf);
 		proc_destroy(child_proc);
-		*retval = -1;
 		return ENOMEM;
 	}
 
-	void **package = kmalloc(2*sizeof(void *));
-	package[0] = (void *)child_proc->p_addrspace;
-	package[1] = (void *)child_tf;
-	err = thread_fork("child",child_proc,&into_forked_process,package,0);
+	err = thread_fork("child",child_proc,(void *)into_forked_process,child_tf, 0);
 	if(err){
-		kfree(child_addrspace);
 		kfree(child_tf);
 		proc_destroy(child_proc);
 		return err;
 	}
+
 	*retval = curproc->pid;
-	child_proc->ppid = curproc->pid; // current pid is child_proc's parent pid
+	for(pid_t c_pid = PID_MIN; c_pid < PID_SIZE; c_pid++){
+		if(whole_proc_table[c_pid] == NULL){
+			child_proc->pid = c_pid;
+			whole_proc_table[child_proc->pid] = child_proc;
+			break;
+		}
+	}
 
 	return 0;
 }
 
 
-void into_forked_process(void *data_1,unsigned long data_2)
+void *into_forked_process(struct trapframe *data_1, unsigned long data_2)
 {
-	(void)data_2;
-
-	struct trapframe *tf = ((void **)data_1)[1];
-	struct addrspace *child_addrspace = ((void **)data_1)[0];
-	struct trapframe tf_1;
-	tf->tf_v0 = 0;
-	tf->tf_a3 = 0;
-	tf->tf_epc += 4;
-
-	curproc->p_addrspace = child_addrspace;
+	(void) data_2;
+	struct trapframe tf;
+	tf = *data_1;
+	tf.tf_v0 = 0;
+	tf.tf_a3 = 0;
+	tf.tf_epc += 4;
 	as_activate();
 
-	memcpy(&tf_1, tf, sizeof(struct trapframe));
-	mips_usermode(&tf_1);
+	mips_usermode(&tf);
 }
 
-pid_t sys_getpid(void){
-	//kprintf("\n............................sys_getpid(), starting..................\n\n");
-	pid_t cur_pid = curproc->pid;
-	//kprintf("1..sys_getpid(), return curproc->pid = %d...................\n\n", cur_pid);
-	return cur_pid;
+pid_t sys_getpid(int *retval){
+	*retval = curproc->pid;
+	return 0;
 }
 
 pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
 {
-	//kprintf("\n............................sys_waitpid(), starting..................\n");
-	(void) status;
-	(void) options;
-	(void) retval;
 	int adr_check;
-	(void) adr_check;
 
 	if(pid < PID_MIN || pid > PID_SIZE){
 		//kprintf("1.. sys_waitpid(), fail, pid too small or too large  ");
 		*retval = -1;
 		return ESRCH;
 	}
-	//kprintf("1.. sys_waitpid(), pid is in range, succeed   ");
 
 	if(status == NULL){
-		//kprintf("2.. sys_waitpid(), fail, status doesnt exits  ");
 		*retval = -1;
 		return EFAULT;
 	}
