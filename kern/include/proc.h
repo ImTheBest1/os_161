@@ -31,7 +31,8 @@
 #define _PROC_H_
 
 #define FILE_SIZE 64
-#define PROC_TABLE_SIZE 1024
+#define PID_SIZE 1024
+
 
 /*
  * Definition of a process.
@@ -40,6 +41,8 @@
  */
 
 #include <spinlock.h>
+#include <limits.h>
+#include <syscall.h>
 
 struct addrspace;
 struct thread;
@@ -74,15 +77,23 @@ struct proc {
 	struct vnode *p_cwd;		/* current working directory */
 
 	/* add more material here as needed */
-	struct file_handler *filetable[FILE_SIZE];
+	struct file_handler **filetable;
 
-	pid_t pid;	// process id
-	pid_t ppid;	// parent process id
+	pid_t pid;
+	pid_t ppid; // parent pid
+	// struct wchan *proc_wchan; // for waitpid
+	struct cv *proc_cv;
+	int proc_exit_code;
+	struct lock *proc_lk;
+	bool proc_exit_signal;
+	bool proc_wait_signal;
 
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
+extern struct proc *whole_proc_table[PID_SIZE];
+
 
 void file_handler_std_init(struct proc *cur_proc);
 
@@ -92,9 +103,11 @@ void proc_bootstrap(void);
 
 /* Create a fresh process for use by runprogram(). */
 struct proc *proc_create_runprogram(const char *name);
+struct proc *proc_create_fork(const char *name);
 
 /* Destroy a process. */
 void proc_destroy(struct proc *proc);
+// void proc_table_destroy();
 
 /* Attach a thread to a process. Must not already have a process. */
 int proc_addthread(struct proc *proc, struct thread *t);
@@ -107,8 +120,5 @@ struct addrspace *proc_getas(void);
 
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *proc_setas(struct addrspace *);
-
-extern struct proc *proc_table[PROC_TABLE_SIZE]; // process table for checking valid pid
-
 
 #endif /* _PROC_H_ */

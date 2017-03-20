@@ -47,12 +47,6 @@ struct file_handler{
  */
 
 void syscall(struct trapframe *tf);
-
-/*
- * Support functions.
- */
-
-/* Helper for fork(). You write this. */
 void enter_forked_process(struct trapframe *tf);
 
 /* Enter user mode. Does not return. */
@@ -70,13 +64,14 @@ int sys_read(int fd, void *buf,size_t buflen,int *retval);
 int sys_write(int fd, const void *buf, size_t buflen,int *retval);
 int sys_close(int fd);
 int sys_lseek(int fd, off_t pos, int whence,int *retval,int *retval_1, uint64_t new_position);
-// proc_syscall below
+
+// process contral system as following
 int sys_fork(struct trapframe *tf,pid_t *retval);
-
-
-
-
-
+/* Helper for fork(). You write this. */
+void * into_forked_process(struct trapframe *data_1,unsigned long data2);
+int sys_getpid(int *retval);
+pid_t sys_waitpid(pid_t pid, int *status, int options, int*retval);
+void sys__exit(int exitcode);
 
 int sys_dup2(int old_fd, int new_fd,int *retval);
 int sys_chdir(userptr_t pathname,int *retval);

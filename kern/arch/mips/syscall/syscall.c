@@ -107,7 +107,7 @@ syscall(struct trapframe *tf)
 	 */
 
 	retval = 0;
-
+	err = 0;
 	switch (callno) {
 	    case SYS_reboot:
 		err = sys_reboot(tf->tf_a0);
@@ -120,11 +120,7 @@ syscall(struct trapframe *tf)
 
 	    /* Add stuff here */
 		case SYS_open:
-	//	kprintf("********************************SYS_open call*********************************\n");
-
 		err = sys_open((userptr_t)tf->tf_a0, (int)tf->tf_a1, (mode_t)tf->tf_a2, &retval);
-
-	//	kprintf("********************************end SYS_open call*********************************\n");
 		break;
 
 		case SYS_read:
@@ -141,9 +137,7 @@ syscall(struct trapframe *tf)
 		break;
 
 		case SYS_write:
-		// kprintf(" Come to write %d\n", callno);
 		err = sys_write((int)tf->tf_a0,(const_userptr_t)tf->tf_a1,(int)tf->tf_a2,&retval);
-	//	kprintf(" write end with retval %d \n", retval);
 		break;
 
 		case SYS_lseek:
@@ -151,15 +145,39 @@ syscall(struct trapframe *tf)
 		_64bits <<= 32;	// left shift 32bits
 		_64bits |= tf->tf_a3; // take tf_a3
 
-		// copyin(const_userptr_t usersrc, void *dest, size_t len)
 		copyin((const_userptr_t)(tf->tf_sp + 16), &whence, (int)sizeof(whence));
-		//err = sys_lseek((int)tf->tf_a0, (off_t)_64bits,(int)tf->tf_a3);
-		// err = sys_lseek((int)tf->tf_a0, (off_t)_64bits,whence,&retval,&retval_1);
 		err = sys_lseek((int)tf->tf_a0, (off_t)_64bits,whence,&retval,&retval_1, new_position);
-
-		if(err == 0){
+		if(!err){
 			tf->tf_v1 = retval_1;
 		}
+		break;
+
+		case SYS_fork:
+		err = sys_fork(tf, &retval);
+		break;
+
+		case SYS_getpid:
+		err = sys_getpid(&retval);
+		break;
+
+		case SYS_waitpid:
+		err = sys_waitpid((pid_t)tf->tf_a0, (int *)tf->tf_a1, (int)tf->tf_a2, &retval);
+		break;
+
+		case SYS__exit:
+		sys__exit((int) tf->tf_a0);
+		break;
+
+		case SYS_dup2:
+		err = sys_dup2((int)tf->tf_a0,(int)tf->tf_a1,&retval);
+		break;
+
+		case SYS_chdir:
+		err = sys_chdir((userptr_t)tf->tf_a0,&retval);
+		break;
+
+		case SYS___getcwd:
+		err = sys___getcwd((char *)tf->tf_a0,(size_t)tf->tf_a2, &retval);
 		break;
 
 

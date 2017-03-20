@@ -74,7 +74,9 @@ int
 dofork(void)
 {
 	int pid;
+
 	pid = fork();
+
 	if (pid < 0) {
 		warn("fork");
 	}

@@ -16,6 +16,12 @@
 #include <kern/seek.h>
 #include <kern/stat.h>
 #include <endian.h>
+#include <mips/trapframe.h>
+#include <addrspace.h>
+#include <kern/wait.h>
+
+
+
 
 #define MAX 1024
 
@@ -46,22 +52,9 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 		*retval = -1;
 		return EFAULT;
 	}
-	// check if file table is available for later file_descriptor pointer to file objector, save spot for open
-
-	// for(int i = 0 ; i < FILE_SIZE; ++i){
-	// 	if(curproc->filetable[i] == NULL){
-	// 		kprintf("@@@@@@@@@@@@@@@@@@@@@@@ free index =  %d  @@@@@@@@@@@@@@@@@@@@@@@\n", i);
-	// 	}
-	// }
-
-
-
-
 	while(!empty || (index >= 3 && index < FILE_SIZE)){
 		if(curproc->filetable[index] == NULL){
 			empty = true;
-			// kprintf("@@@@@@@@@@@@@@@@@@@@@@@ curproc->filetable[index] has space, index =  %d  @@@@@@@@@@@@@@@@@@@@@@@\n", index);
-			// as long as it is empty, break;
 			break;
 		}
 		index++;
@@ -72,13 +65,8 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 		*retval = -1;
 		return EMFILE;
 	}
-//	kprintf("@@@@@@@@@@@@@@@@@@@@@@@ double check index =  %d  @@@@@@@@@@@@@@@@@@@@@@@\n", index);
-
-
 
 	open_code = vfs_open(filename,flags,mode,&vn);
-
-//	kprintf("@@@@@@@@@@@@@@@@@@@@@@@ open_code =  %d  @@@@@@@@@@@@@@@@@@@@@@@\n", open_code);
 
 	if(open_code){
 		*retval = -1;
@@ -90,18 +78,12 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
 	file->file_lk = lock_create("normal open file");
 	curproc->filetable[index] = file;
 	*retval = index;
-	// if(index > FILE_SIZE)
-	// {
-	// 	return -1;
-	// }
+
 	return 0;
 }
 
 
 int sys_read(int fd, void *buf,size_t buflen,int *retval){
-	(void) fd;
-	(void) buf;
-	(void) buflen;
 
 	if(fd < 0 || curproc->filetable[fd] == NULL || fd > FILE_SIZE){
 		*retval = -1;
@@ -144,9 +126,6 @@ int sys_read(int fd, void *buf,size_t buflen,int *retval){
 
 	struct iovec iov;
 	struct uio myuio;
-	// uio_kinit(&iov, &myuio, bufferName, strlen(bufferName), curproc->filetable[fd]->offset, UIO_WRITE);
-	// uio_kinit(&iov, &myuio, bufferName, strlen(bufferName), 0, UIO_WRITE);
-	// uio_kinit(&iov, &myuio, bufferName, buflen, 0, UIO_READ);
 	uio_kinit(&iov, &myuio, bufferName, buflen, curproc->filetable[fd]->offset, UIO_READ);
 
 	//update the offset
@@ -175,17 +154,12 @@ int sys_read(int fd, void *buf,size_t buflen,int *retval){
 }
 
 int sys_write(int fd, const void *buf, size_t buflen, int *retval){
-	//KASSERT(curproc->filetable[fd]->file_vn != NULL);
 
 	if(fd < 0 || fd > FILE_SIZE || curproc->filetable[fd] == NULL){
 		*retval = -1;
 		return EBADF;
 	}
-// this one should not be a error
-	// if(buf == NULL || buflen == 0){
-	// 	return -1;
-	// }
-// buf to 0 is totally ok
+
   if(buf == NULL){
 		*retval = -1;
 		return EFAULT;
@@ -220,8 +194,6 @@ int sys_write(int fd, const void *buf, size_t buflen, int *retval){
 
 	struct iovec iov;
 	struct uio myuio;
-	// uio_kinit(&iov, &myuio, bufferName, strlen(bufferName), curproc->filetable[fd]->offset, UIO_WRITE);
-	// uio_kinit(&iov, &myuio, bufferName, strlen(bufferName), 0, UIO_WRITE);
 	uio_kinit(&iov, &myuio, bufferName, buflen, curproc->filetable[fd]->offset, UIO_WRITE);
 	// int (*vop_write)(struct vnode *file, struct uio *uio);
 	adr_check = VOP_WRITE(curproc->filetable[fd]->file_vn, &myuio);
@@ -252,9 +224,6 @@ int sys_close(int fd){
 
 int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint64_t new_position){
 
-	(void) retval;
-	(void) retval_1;
-	(void) new_position;
 	struct stat statbuf;
 	int adr_check;
 	(void) adr_check;
@@ -271,7 +240,6 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint64_t
 
     lock_acquire(curproc->filetable[fd]->file_lk);
 
-    //lock_acquire(curproc->filetable[fd]->file_lk);
     switch(whence) {
 
         case SEEK_SET:	// the new position is pos
@@ -325,16 +293,6 @@ int sys_lseek(int fd, off_t pos, int whence,int *retval, int *retval_1, uint64_t
 		lock_release(curproc->filetable[fd]->file_lk);
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
 
 int sys_dup2(int old_fd, int new_fd,int *retval){
 	  if (old_fd < 0 || old_fd > FILE_SIZE) {

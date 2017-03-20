@@ -388,7 +388,11 @@ file      syscall/loadelf.c
 file      syscall/runprogram.c
 file      syscall/time_syscalls.c
 file      syscall/file_syscall.c
+<<<<<<< HEAD
 file	  syscall/proc_syscall.c
+=======
+file      syscall/proc_syscall.c
+>>>>>>> asst2
 #
 # Startup and initialization
 #
