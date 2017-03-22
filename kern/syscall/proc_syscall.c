@@ -135,9 +135,9 @@ int sys_waitpid(pid_t pid, int *status, int options, int* retval)
 	*retval = pid;
 
 	// if child is already exit, then can destroy child, proc_exit_destroy somehow doesnt work
-	proc_exit_destroy(child_proc);
-	kfree(whole_proc_table[pid]);
-	whole_proc_table[pid] = NULL;
+	// proc_exit_destroy(child_proc);
+	// kfree(whole_proc_table[pid]);
+	// whole_proc_table[pid] = NULL;
 
 	return 0;
 	}
@@ -146,6 +146,7 @@ void sys__exit(int exitcode)
 {
 	pid_t parent_pid = curproc->ppid;
 	pid_t pid = curproc->pid;
+	(void) pid;
 
 	curproc->proc_exit_code = _MKWAIT_EXIT(exitcode);
 	curproc->proc_exit_signal = true;
@@ -156,9 +157,9 @@ void sys__exit(int exitcode)
 	lock_release(curproc->proc_lk);
 	}else{
 	//before exit, clean the proc, proc_destroy doesnt work somehows
-	proc_exit_destroy(curproc);
-	kfree(whole_proc_table[pid]);
-	whole_proc_table[pid] = NULL;
+	// proc_exit_destroy(curproc);
+	// kfree(whole_proc_table[pid]);
+	// whole_proc_table[pid] = NULL;
 	}
 
  	thread_exit();
