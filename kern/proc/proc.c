@@ -104,7 +104,7 @@ proc_create(const char *name)
 	proc->proc_cv = cv_create("proc_cv");
 	proc->proc_lk = lock_create("proc_lk");
 	proc->proc_exit_signal = false;
-	proc->proc_wait_signal = false;
+	proc->status = true;
 
 	// initialize process table
 	for(pid_t id = 1; id < PID_SIZE; ++id){
@@ -116,7 +116,6 @@ proc_create(const char *name)
 	}
 
 	/* pid fields*/
-	proc->pid = 0;
 	proc->ppid = 0;
 
 	return proc;
@@ -253,23 +252,54 @@ proc_destroy(struct proc *proc)
 			if (proc->filetable[index]->file_vn) {
 				VOP_DECREF(proc->filetable[index]->file_vn);
 				vfs_close(proc->filetable[index]->file_vn);
-				proc->filetable[index]->file_vn = NULL;
+				// proc->filetable[index]->file_vn = NULL;
 			}
 			lock_destroy(proc->filetable[index]->file_lk); // destroy lock inside file_table
 			proc->filetable[index] = NULL; // kfree
 		}
 	}
+
 	cv_destroy(proc->proc_cv);
 	lock_destroy(proc->proc_lk);
 
 	proc->p_numthreads = 0;
+
+	whole_proc_table[proc->pid] = NULL;
+	proc->pid = 0;
+	proc->ppid = 0;
+
 	KASSERT(proc->p_numthreads == 0);
 	spinlock_cleanup(&proc->p_lock);
+
+
 
 	kfree(proc->p_name);
 	kfree(proc);
 
+
 }
+
+void proc_exit_destroy(struct proc *cur_proc){
+
+	if (cur_proc->p_cwd) {
+		VOP_DECREF(cur_proc->p_cwd);
+		cur_proc->p_cwd = NULL;
+	}
+
+	if (cur_proc->p_addrspace) {
+		struct addrspace *as;
+		as = cur_proc->p_addrspace;
+		cur_proc->p_addrspace = NULL;
+		as_destroy(as);
+	}
+
+	cv_destroy(cur_proc->proc_cv);
+	lock_destroy(cur_proc->proc_lk);
+	kfree(cur_proc->p_name);
+	kfree(cur_proc);
+
+}
+
 
 
 /*
@@ -305,7 +335,7 @@ proc_create_runprogram(const char *name)
 	newproc->p_addrspace = NULL;
 
 	/* VFS fields */
-	newproc->ppid = 1; // 0 for kernel
+	newproc->ppid = 0; // 0 for kernel
 
 	/*
 	* Lock the current process to copy its current directory.
@@ -347,14 +377,14 @@ struct proc *proc_create_fork(const char *name){
 	/* VFS fields */
 	proc->p_cwd = NULL;
 
-	proc->ppid = 0; // default for kernel, i guess
+	proc->ppid = 1; // default for kernel, i guess
 
 
 	proc->proc_exit_code = 0;
-	proc->proc_cv = cv_create("proc_cv");
-	proc->proc_lk = lock_create("proc_lk");
+	proc->proc_cv = cv_create("child_proc_cv");
+	proc->proc_lk = lock_create("child_proc_lk");
 	proc->proc_exit_signal = false;
-	proc->proc_wait_signal = false;
+	proc->status = false;
 	return proc;
 }
 

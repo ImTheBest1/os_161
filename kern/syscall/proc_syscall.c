@@ -59,7 +59,9 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
 		return err;
 	}
 
-	*retval = curproc->pid;
+	child_proc->status = true;
+
+
 	for(pid_t c_pid = PID_MIN; c_pid < PID_SIZE; c_pid++){
 		if(whole_proc_table[c_pid] == NULL){
 			child_proc->pid = c_pid;
@@ -67,6 +69,8 @@ int sys_fork(struct trapframe *tf,pid_t *retval){
 			break;
 		}
 	}
+
+	*retval = child_proc->pid;
 
 	return 0;
 }
@@ -90,92 +94,74 @@ pid_t sys_getpid(int *retval){
 	return 0;
 }
 
-pid_t sys_waitpid(pid_t pid, int *status, int options, int* retval)
+int sys_waitpid(pid_t pid, int *status, int options, int* retval)
 {
-	int adr_check;
 
 	if(pid < PID_MIN || pid > PID_SIZE){
-		//kprintf("1.. sys_waitpid(), fail, pid too small or too large  ");
-		*retval = -1;
 		return ESRCH;
 	}
 
-	if(status == NULL){
-		*retval = -1;
-		return EFAULT;
-	}
-	//kprintf("2.. sys_waitpid(), status exits, succeed  ");
-
-	if(options != 0 && options != WNOHANG && options != WUNTRACED){
-		kprintf("3.. sys_waitpid(), options is not zero, fail  ");
-		*retval = -1;
+	if(options != 0){
 		return EINVAL;
 	}
-	//kprintf("3.. sys_waitpid(), options==0, succeed  ");
 
 	struct proc *child_proc = whole_proc_table[pid];
-	(void) child_proc;
 	// child_proc cantbe NULL
 	if(child_proc == NULL){
-		//kprintf("4.. sys_waitpid(), no child_proc in proc_table, fail ");
-		*retval = -1;
 		return ESRCH;
 	}
-	//kprintf("5.. sys_waitpid(), get child_proc from proc_table, succeed  ");
 
 	pid_t parent_pid = child_proc->ppid;
-	if(parent_pid == curproc->pid){
-		//kprintf("6.. sys_waitpid(), no parent, fail ");
-		*retval = -1;
+
+	if(parent_pid != curproc->pid){
+		// not the same parent
 		return ECHILD;
 	}
-	//kprintf("6.. sys_waitpid(), I have parent, succeed   ");
+	if(pid == curproc->pid){
+		//parent can != child
+		return ECHILD;
+	}
 
-	if(child_proc->proc_exit_signal){
-		cv_wait(child_proc->proc_cv, child_proc->proc_lk);
-		// wchan_sleep(child_proc->proc_wchan, &child_proc->p_lock);
-		//  kprintf("7.. sys_waitpid, child_proc wait to exit, succeed  ");
-	}else{
-		if( options == WNOHANG){
-			*retval = -1;
-			return 0;
+	lock_acquire(child_proc->proc_lk);
+	if(child_proc->status){
+		if(child_proc->proc_exit_signal == false){
+			cv_wait(child_proc->proc_cv,child_proc->proc_lk);
 		}
 	}
+	copyout(&child_proc->proc_exit_code, (userptr_t) status, sizeof(int));
 
-	// *status = child_proc->proc_exit_code;
-	adr_check = copyout(&child_proc->proc_exit_code, (userptr_t) status, sizeof(int));
-	if(adr_check){
+	lock_release(child_proc->proc_lk);
 
-		*retval = -1;
-		return adr_check;
-	}
+	*retval = pid;
 
-
-	proc_destroy(child_proc); // Destroy child
+	// if child is already exit, then can destroy child, proc_exit_destroy somehow doesnt work
+	proc_exit_destroy(child_proc);
+	kfree(whole_proc_table[pid]);
 	whole_proc_table[pid] = NULL;
 
-	//kprintf("\n------------------sys_waitpid(), ends, succeed \n\n ");
-	return pid;
-}
+	return 0;
+	}
 
-void sys__exit(int exitcode){
-	(void) exitcode;
-
-	lock_acquire(curproc->proc_lk);
+void sys__exit(int exitcode)
+{
 	pid_t parent_pid = curproc->ppid;
-	(void) parent_pid;
+	pid_t pid = curproc->pid;
 
-	if(whole_proc_table[parent_pid]->proc_exit_signal == false){
-		curproc->proc_exit_signal = true;
-		curproc->proc_exit_code = _MKWAIT_EXIT(exitcode);
-		cv_broadcast(curproc->proc_cv, curproc->proc_lk);
-		lock_release(curproc->proc_lk);
+	curproc->proc_exit_code = _MKWAIT_EXIT(exitcode);
+	curproc->proc_exit_signal = true;
+
+	if(parent_pid != 0){
+	lock_acquire(curproc->proc_lk);
+	cv_broadcast(curproc->proc_cv,curproc->proc_lk);
+	lock_release(curproc->proc_lk);
+	}else{
+	//before exit, clean the proc, proc_destroy doesnt work somehows
+	proc_exit_destroy(curproc);
+	kfree(whole_proc_table[pid]);
+	whole_proc_table[pid] = NULL;
 	}
-	else{
 
-		proc_destroy(curproc);
-	}
-
-	thread_exit();
+ 	thread_exit();
+	//kprintf("fail sys_exit...");
 
 }

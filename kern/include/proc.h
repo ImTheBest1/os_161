@@ -86,7 +86,7 @@ struct proc {
 	int proc_exit_code;
 	struct lock *proc_lk;
 	bool proc_exit_signal;
-	bool proc_wait_signal;
+	bool status;
 
 };
 
@@ -107,6 +107,7 @@ struct proc *proc_create_fork(const char *name);
 
 /* Destroy a process. */
 void proc_destroy(struct proc *proc);
+void proc_exit_destroy(struct proc* cur_proc);
 // void proc_table_destroy();
 
 /* Attach a thread to a process. Must not already have a process. */

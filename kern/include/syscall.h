@@ -70,8 +70,9 @@ int sys_fork(struct trapframe *tf,pid_t *retval);
 /* Helper for fork(). You write this. */
 void * into_forked_process(struct trapframe *data_1,unsigned long data2);
 int sys_getpid(int *retval);
-pid_t sys_waitpid(pid_t pid, int *status, int options, int*retval);
+int sys_waitpid(pid_t pid, int *status, int options, int*retval);
 void sys__exit(int exitcode);
+
 
 int sys_dup2(int old_fd, int new_fd,int *retval);
 int sys_chdir(userptr_t pathname,int *retval);

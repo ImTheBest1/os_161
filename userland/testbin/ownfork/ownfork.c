@@ -17,15 +17,16 @@ main(int argc, char *argv[])
   int pid = fork();
 
   if (pid == 0) {
-	  child_pid = getpid();
+	 child_pid = getpid();
     tprintf("I'm the child,mypid = %d~~~~~~~~~~~~\n", child_pid);
-
+	exit(0);
   } else {
-    // int ret;
+    int ret;
 	p_pid = getpid();
     tprintf("I'm the parent,mypid = %d---\n", p_pid);
-    // waitpid(pid, &ret, 0);
-
+    waitpid(pid, &ret, 0);
+	exit(1);
   }
+
   return 0;
 }
