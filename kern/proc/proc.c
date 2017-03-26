@@ -143,6 +143,7 @@ void file_handler_std_init(struct proc *cur_proc){
 	cur_proc->filetable[0]->file_vn = vn_1;
 	cur_proc->filetable[0]->flag = O_RDONLY;
 	cur_proc->filetable[0]->offset = 0;
+	cur_proc->filetable[0]->file_reference_count = 1;
 	cur_proc->filetable[0]->file_lk = lock_create(deceive_console);
 
 	cur_proc->filetable[1] = kmalloc(sizeof(struct file_handler));
@@ -152,6 +153,7 @@ void file_handler_std_init(struct proc *cur_proc){
 	cur_proc->filetable[1] ->file_vn = vn_2;
 	cur_proc->filetable[1] ->flag = O_WRONLY;
 	cur_proc->filetable[1] ->offset = 0;
+	cur_proc->filetable[1]->file_reference_count = 1;
 	cur_proc->filetable[1]->file_lk = lock_create(deceive_console);
 
 	cur_proc->filetable[2] = kmalloc(sizeof(struct file_handler));
@@ -161,6 +163,7 @@ void file_handler_std_init(struct proc *cur_proc){
 	cur_proc->filetable[2] ->file_vn = vn_3;
 	cur_proc->filetable[2] ->flag = (int)O_WRONLY;
 	cur_proc->filetable[2] ->offset = 0;
+	cur_proc->filetable[2]->file_reference_count = 1;
 	cur_proc->filetable[2]->file_lk = lock_create(deceive_console);
 
 
@@ -349,7 +352,7 @@ proc_create_runprogram(const char *name)
 	}
 	spinlock_release(&curproc->p_lock);
 
-	//file_handler_std_init(newproc);
+	file_handler_std_init(newproc);
 	return newproc;
 }
 
@@ -378,6 +381,7 @@ struct proc *proc_create_fork(const char *name){
 	proc->p_cwd = NULL;
 
 	proc->ppid = 1; // default for kernel, i guess
+	proc->pid = 2; // set default
 
 
 	proc->proc_exit_code = 0;

@@ -76,6 +76,7 @@ int sys_open(userptr_t user_filename, int flags, mode_t mode, int *retval){
  	file->file_vn = vn;
  	file->flag = flags;
 	file->file_lk = lock_create("normal open file");
+	file->file_reference_count = 1;
 	curproc->filetable[index] = file;
 	*retval = index;
 
@@ -213,6 +214,9 @@ int sys_close(int fd){
 	if(fd < 0 || fd > FILE_SIZE  || curproc->filetable[fd] == NULL){
 		return EBADF;
 	}
+
+	curproc->filetable[fd]->file_reference_count--;
+	
 	if(curproc->filetable[fd]->file_vn != NULL){
 		vfs_close(curproc->filetable[fd]->file_vn);
 		kfree(curproc->filetable[fd]);

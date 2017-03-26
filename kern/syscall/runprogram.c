@@ -97,8 +97,6 @@ runprogram(char *progname)
 		return result;
 	}
 
-	file_handler_std_init(curproc);
-
 	/* Warp to user mode. */
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
 			  NULL /*userspace addr of environment*/,

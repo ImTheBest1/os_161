@@ -39,6 +39,7 @@ struct file_handler{
 	 off_t offset;
 	 struct vnode *file_vn;
 	 struct lock *file_lk;
+	 int file_reference_count;
 };
 
 
@@ -72,6 +73,8 @@ void * into_forked_process(struct trapframe *data_1,unsigned long data2);
 int sys_getpid(int *retval);
 int sys_waitpid(pid_t pid, int *status, int options, int*retval);
 void sys__exit(int exitcode);
+
+int sys_execv(const char *program, char **args, int *retval);
 
 
 int sys_dup2(int old_fd, int new_fd,int *retval);
