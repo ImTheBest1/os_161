@@ -22,17 +22,17 @@ machine mips file    ../common/gcc-millicode/ucmpdi2.c
 machine mips file    ../common/gcc-millicode/udivdi3.c
 machine mips file    ../common/gcc-millicode/umoddi3.c
 machine mips file    ../common/gcc-millicode/xordi3.c
-machine mips file    arch/mips/locore/trap.c	
-machine mips file    arch/mips/thread/cpu.c	
-machine mips file    arch/mips/thread/switch.S	
-machine mips file    arch/mips/thread/switchframe.c	
-machine mips file    arch/mips/thread/thread_machdep.c	
-machine mips file    arch/mips/thread/threadstart.S	
-machine mips file    arch/mips/vm/ram.c		
-machine mips file    vm/copyinout.c		
+machine mips file    arch/mips/locore/trap.c
+machine mips file    arch/mips/thread/cpu.c
+machine mips file    arch/mips/thread/switch.S
+machine mips file    arch/mips/thread/switchframe.c
+machine mips file    arch/mips/thread/thread_machdep.c
+machine mips file    arch/mips/thread/threadstart.S
+machine mips file    arch/mips/vm/ram.c
+machine mips file    vm/copyinout.c
 defoption   mipsvm
 machine mips optfile mipsvm    arch/mips/vm/mipsvm.c
-machine mips file    arch/mips/syscall/syscall.c	
+machine mips file    arch/mips/syscall/syscall.c
 platform sys161 file    arch/mips/locore/cache-mips161.S
 platform sys161 file    arch/mips/locore/exception-mips1.S
 platform sys161 file    arch/mips/vm/tlb-mips161.S
@@ -146,18 +146,18 @@ optfile   synchprobs  synchprobs/stoplight.c
 optfile   synchprobs  test/synchprobs.c
 defoption automationtest
 optfile automationtest	test/automationtest.c
-debug				
-device lamebus0			
-device emu* at lamebus*		
-device ltrace* at lamebus*	
-device ltimer* at lamebus*	
-device lrandom* at lamebus*	
-device lhd* at lamebus*		
-device lser* at lamebus*	
-device beep0 at ltimer*		
-device con0 at lser*		
-device rtclock0 at ltimer*	
-device random0 at lrandom*	
-options semfs			
-options sfs			
+debug
+device lamebus0
+device emu* at lamebus*
+device ltrace* at lamebus*
+device ltimer* at lamebus*
+device lrandom* at lamebus*
+device lhd* at lamebus*
+device lser* at lamebus*
+device beep0 at ltimer*
+device con0 at lser*
+device rtclock0 at ltimer*
+device random0 at lrandom*
+options semfs
+options sfs
 options mipsvm
