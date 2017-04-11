@@ -154,7 +154,7 @@ void sys__exit(int exitcode)
 	curproc->proc_exit_code = _MKWAIT_EXIT(exitcode);
 	curproc->proc_exit_signal = true;
 
-	if(parent_pid != 0){
+	if(parent_pid != 0 && whole_proc_table[parent_pid]->proc_exit_signal == false){
 	lock_acquire(curproc->proc_lk);
 	cv_broadcast(curproc->proc_cv,curproc->proc_lk);
 	lock_release(curproc->proc_lk);
@@ -169,7 +169,7 @@ void sys__exit(int exitcode)
 }
 
 int sys_execv(const char *program, char **args, int *retval){
-	(void) args;
+
 	(void) retval;
 	struct addrspace *as;
 	struct vnode *v;
@@ -181,9 +181,10 @@ int sys_execv(const char *program, char **args, int *retval){
 		return EFAULT;
 	}
 
-	// copy user space to kernel space
+	// copy user space to kernel space, kernel_program need to pass into args, then need actual length of string
 	char *kernel_program = (char *)kmalloc(sizeof(char)*PATH_MAX);
-	result = copyin((const_userptr_t)program, kernel_program,PATH_MAX);
+	size_t got;
+	result = copyinstr((const_userptr_t)program, kernel_program,PATH_MAX, &got);
 
 	if(result){
 		kprintf("copyin userspace program fail\n");
@@ -191,7 +192,10 @@ int sys_execv(const char *program, char **args, int *retval){
 		return result;
 	}
 
-	if(strlen(kernel_program) == 0){
+	int length_kprogram = strlen(kernel_program);
+	// kprintf("strlen of kernel_program = %d", length_kprogram);
+
+	if( length_kprogram == 0){
 		return -1;
 	}
 
@@ -209,13 +213,38 @@ int sys_execv(const char *program, char **args, int *retval){
 	}
 
 	char **kernel_args = (char **) kmalloc(sizeof(char *) * args_size);
-	result = copyin((const_userptr_t) kernel_args, args, sizeof(args));
+	result = copyin((const_userptr_t) kernel_args, args, args_size);
+
+	//check the total bytes if over size
+	int args_bsize = 0;
+
+
+	for(int i = 0; i < args_size; i++){
+		int length = strlen(kernel_args[i]);
+		args_bsize += length;
+	}
+	args_bsize = 4 * args_bsize; // pointer is 4 bytes
+	if(args_bsize > ARG_MAX){
+		kfree(kernel_args);
+		kfree(kernel_program);
+		result = E2BIG;
+		return result;
+	}
+
+
+
 
 	/* Open the file. */
 	result = vfs_open(kernel_program, O_RDONLY, 0, &v);
 	if (result) {
+		for(int i = 0; i < args_size; ++i){
+			kfree(kernel_args[i]);
+		}
+		kfree(kernel_args);
 		return result;
 	}
+
+
 
 	// destroy current addrspace
 	if(curproc->p_addrspace != NULL){
@@ -237,6 +266,7 @@ int sys_execv(const char *program, char **args, int *retval){
 	proc_setas(as);
 	as_activate();
 
+
 	/* Load the executable. */
 	result = load_elf(v, &entrypoint);
 	if (result) {
@@ -254,6 +284,9 @@ int sys_execv(const char *program, char **args, int *retval){
 		/* p_addrspace will go away when curproc is destroyed */
 		return result;
 	}
+
+
+
 
 	/* Warp to user mode. */
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,

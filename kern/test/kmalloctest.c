@@ -143,6 +143,7 @@ kmallocstress(int nargs, char **args)
 	for (i=0; i<NTHREADS; i++) {
 		result = thread_fork("kmallocstress", NULL,
 				     kmallocthread, sem, i);
+		
 		if (result) {
 			panic("kmallocstress: thread_fork failed: %s\n",
 			      strerror(result));
@@ -494,7 +495,7 @@ kmalloctest5(int nargs, char **args)
 	kprintf("km5 --> phys ram: %uk avail ram: %uk  (%u pages) ptr blocks: %u\n", total_ram/1024,
 		avail_ram/1024, max_pages, num_ptr_blocks);
 
-	// Initially, there must be at least 1 page allocated for each thread stack,
+	// Initially, there must be at least 1 page allocatpanic: !ed for each thread stack,
 	// one page for kmalloc for this thread struct, plus what we just allocated).
 	// This probably isn't the GLB, but its a decent lower bound.
 	orig_used = coremap_used_bytes();
