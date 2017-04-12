@@ -67,7 +67,8 @@
 static struct spinlock coremap_lock = SPINLOCK_INITIALIZER;
 static uint32_t count_coremap_used;
 static uint32_t total_pages;
-static uint32_t total_free_pages;
+static uint32_t total_coremap_free_pages;
+static uint32_t total_coremap_entries;
 static uint32_t kern_pages;
 static struct Pages *page;
 
@@ -97,11 +98,14 @@ vm_bootstrap(void)
 	paddr_t first_freepaddr = firstpaddr + coremap_size;
 
 	kern_pages = first_freepaddr / PAGE_SIZE;
-	total_free_pages = (lastpaddr - first_freepaddr) / PAGE_SIZE;
+	total_coremap_free_pages = (lastpaddr - first_freepaddr) / PAGE_SIZE;
+	total_coremap_entries = total_coremap_free_pages;
 
-	for(uint32_t i = 0; i < total_free_pages; ++i){
+	for(uint32_t i = 0; i < total_coremap_free_pages; ++i){
 		page[i].isValid = true;
 		page[i].start = 0;
+		page[i].isStart = false;
+		page[i].isEnd = false;
 	}
 
 	count_coremap_used = 0;
@@ -112,14 +116,13 @@ vm_bootstrap(void)
 vaddr_t
 alloc_kpages(unsigned npages)
 {
-
 	spinlock_acquire(&coremap_lock);
-	for(uint32_t i = 0; i < total_free_pages; ++i){
+	for(uint32_t i = 0; i < total_coremap_free_pages; ++i){
 		uint32_t count = 0;
 		uint32_t range = i + npages;
 		if(page[i].isValid == true){
 			for(uint32_t j = i; j < range; ++j){
-				if(j < total_free_pages){
+				if(range < total_coremap_free_pages){
 					if(page[j].isValid == true){
 						count++;
 					}else{
@@ -128,10 +131,16 @@ alloc_kpages(unsigned npages)
 				}
 			}//end for(j)
 
-			if( count == npages){
+			if(count == npages){
 				paddr_t pa = (i + kern_pages) * PAGE_SIZE;
 				for(unsigned int j = i; j < range; ++j){
 					page[j].isValid = false;
+					if(j == i ){
+						page[j].isStart = true;
+					}
+					if( j == range - 1){
+						page[j].isEnd = true;
+					}
 					page[i].start = KVADDR_TO_PADDR(i * PAGE_SIZE);
 				}
 				count_coremap_used += npages;
@@ -139,31 +148,33 @@ alloc_kpages(unsigned npages)
 				return PADDR_TO_KVADDR(pa);
 			}
 		}//end if(page[i])
-
 	}//end for(i)
 
 
 	spinlock_release(&coremap_lock);
 	return 0;
-}
+	}
 
 void
 free_kpages(vaddr_t addr)
 {
-	/* nothing - leak the memory. */
+
 	paddr_t pa = KVADDR_TO_PADDR(addr);
 	uint32_t index = (pa / PAGE_SIZE) - kern_pages;
 
 	spinlock_acquire(&coremap_lock);
-	for(uint32_t i = index; i < total_free_pages; ++i){
+	for(uint32_t i = index; i < total_coremap_entries; ++i){
 		if(page[i].isValid == false){
 			page[i].isValid = true;
 			page[i].start = 0;
+			page[i].isStart = false;
 			count_coremap_used--;
-			// set up firstpaddr;
-			//travel whole list, increate free pages
-
 		}
+		if(page[i].isEnd == true){
+			page[i].isEnd = false;
+			break;
+		}
+		page[i].isEnd = false;
 	}
 	spinlock_release(&coremap_lock);
 }

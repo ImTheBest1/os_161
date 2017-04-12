@@ -47,6 +47,8 @@
 struct Pages{
 	bool isValid;
 	int start;
+	bool isStart;
+	bool isEnd;
 
 };
 
