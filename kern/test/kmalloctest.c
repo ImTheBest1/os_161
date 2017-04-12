@@ -41,7 +41,7 @@
 #include <kern/test161.h>
 #include <mainbus.h>
 
-#include "opt-dumbvm.h"
+// #include "opt-dumbvm.h"
 
 // from arch/mips/vm/ram.c
 extern vaddr_t firstfree;
@@ -143,7 +143,7 @@ kmallocstress(int nargs, char **args)
 	for (i=0; i<NTHREADS; i++) {
 		result = thread_fork("kmallocstress", NULL,
 				     kmallocthread, sem, i);
-		
+
 		if (result) {
 			panic("kmallocstress: thread_fork failed: %s\n",
 			      strerror(result));
