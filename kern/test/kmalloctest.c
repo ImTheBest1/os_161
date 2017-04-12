@@ -41,7 +41,7 @@
 #include <kern/test161.h>
 #include <mainbus.h>
 
-// #include "opt-dumbvm.h"
+#include "opt-dumbvm.h"
 
 // from arch/mips/vm/ram.c
 extern vaddr_t firstfree;
