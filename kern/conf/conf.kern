@@ -352,7 +352,7 @@ file      vm/kmalloc.c
 file	  arch/mips/vm/mipsvm.c
 
 #optofffile dumbvm   vm/addrspace.c
-#optofffile mipsvm   vm/addrspace.c
+
 
 #
 # Network
