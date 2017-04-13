@@ -76,6 +76,7 @@ machine mips file    vm/copyinout.c		# copyin/out et al.
 
 defoption   mipsvm
 machine mips optfile mipsvm    arch/mips/vm/mipsvm.c
+file arch/mips/vm/mipsvm.c
 
 #
 # System call layer
