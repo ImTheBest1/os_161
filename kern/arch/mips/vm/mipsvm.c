@@ -70,7 +70,7 @@ static uint32_t total_pages;
 static uint32_t total_coremap_free_pages;
 static uint32_t total_coremap_entries;
 static uint32_t kern_pages;
-static struct Pages *page;
+static struct Coremap *_coremap;
 
 
 
@@ -90,22 +90,24 @@ vm_bootstrap(void)
 	//get total free pages in physical memory
 	npages = (lastpaddr - firstpaddr) / PAGE_SIZE;
 
-	page = (struct Pages *) PADDR_TO_KVADDR(firstpaddr);
+	_coremap = (struct Coremap *) PADDR_TO_KVADDR(firstpaddr);
 
-	coremap_size = npages * sizeof(struct Pages);
+	// coremap in physical memory, which also is MAPS memory
+	coremap_size = npages * sizeof(struct Coremap);
 	coremap_size = ROUNDUP(coremap_size, PAGE_SIZE);
 
+	// set up first_freepaddr which starts after coremap
 	paddr_t first_freepaddr = firstpaddr + coremap_size;
 
-	kern_pages = first_freepaddr / PAGE_SIZE;
+	kern_pages = first_freepaddr / PAGE_SIZE;	// kern_pages includes "kernl, coremap, exception handler"
 	total_coremap_free_pages = (lastpaddr - first_freepaddr) / PAGE_SIZE;
 	total_coremap_entries = total_coremap_free_pages;
 
 	for(uint32_t i = 0; i < total_coremap_free_pages; ++i){
-		page[i].isValid = true;
-		page[i].start = 0;
-		page[i].isStart = false;
-		page[i].isEnd = false;
+		_coremap[i].isValid = true;
+		_coremap[i].start = 0;
+		_coremap[i].isStart = false;
+		_coremap[i].isEnd = false;
 	}
 
 	count_coremap_used = 0;
@@ -120,10 +122,10 @@ alloc_kpages(unsigned npages)
 	for(uint32_t i = 0; i < total_coremap_free_pages; ++i){
 		uint32_t count = 0;
 		uint32_t range = i + npages;
-		if(page[i].isValid == true){
+		if(_coremap[i].isValid == true){
 			for(uint32_t j = i; j < range; ++j){
 				if(range < total_coremap_free_pages){
-					if(page[j].isValid == true){
+					if(_coremap[j].isValid == true){
 						count++;
 					}else{
 						break;
@@ -134,14 +136,14 @@ alloc_kpages(unsigned npages)
 			if(count == npages){
 				paddr_t pa = (i + kern_pages) * PAGE_SIZE;
 				for(unsigned int j = i; j < range; ++j){
-					page[j].isValid = false;
+					_coremap[j].isValid = false;
 					if(j == i ){
-						page[j].isStart = true;
+						_coremap[j].isStart = true;
 					}
 					if( j == range - 1){
-						page[j].isEnd = true;
+						_coremap[j].isEnd = true;
 					}
-					page[i].start = KVADDR_TO_PADDR(i * PAGE_SIZE);
+					_coremap[i].start = KVADDR_TO_PADDR(i * PAGE_SIZE);
 				}
 				count_coremap_used += npages;
 				spinlock_release(&coremap_lock);
@@ -164,17 +166,17 @@ free_kpages(vaddr_t addr)
 
 	spinlock_acquire(&coremap_lock);
 	for(uint32_t i = index; i < total_coremap_entries; ++i){
-		if(page[i].isValid == false){
-			page[i].isValid = true;
-			page[i].start = 0;
-			page[i].isStart = false;
+		if(_coremap[i].isValid == false){
+			_coremap[i].isValid = true;
+			_coremap[i].start = 0;
+			_coremap[i].isStart = false;
 			count_coremap_used--;
 		}
-		if(page[i].isEnd == true){
-			page[i].isEnd = false;
+		if(_coremap[i].isEnd == true){
+			_coremap[i].isEnd = false;
 			break;
 		}
-		page[i].isEnd = false;
+		_coremap[i].isEnd = false;
 	}
 	spinlock_release(&coremap_lock);
 }
